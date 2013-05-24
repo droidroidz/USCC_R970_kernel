@@ -280,7 +280,7 @@ on property:init.svc.prepare-ssdaemon=stopped
     start secure_storage
 
 # for LogMeIn 
-service RescueStarter /system/bin/RescueStarter 
-    class core 
-    user graphics 
-    group input graphics
+#service RescueStarter /system/bin/RescueStarter 
+#    class core 
+#    user graphics 
+#    group input graphics
