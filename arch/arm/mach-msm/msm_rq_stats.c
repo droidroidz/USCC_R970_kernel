@@ -419,7 +419,7 @@ static int __init msm_rq_stats_init(void)
 		pcpu->policy_max = cpu_policy.cpuinfo.max_freq;
 #ifdef CONFIG_MACH_JF
 		/* This is initial frequency */
-		pcpu->cur_freq = 1566000;
+		pcpu->cur_freq = 1674000;
 #endif
 		if (cpu_online(i))
 			pcpu->cur_freq = acpuclk_get_rate(i);

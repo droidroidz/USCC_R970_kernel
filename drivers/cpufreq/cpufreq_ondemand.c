@@ -58,7 +58,7 @@ static unsigned int min_range = 108000;
 #endif
 
 #if defined(SMART_UP_SLOW_UP_AT_HIGH_FREQ)
-static unsigned int SUP_SLOW_UP_FREQUENCY = 1566000;
+static unsigned int SUP_SLOW_UP_FREQUENCY = 1674000;
 static unsigned int SUP_SLOW_UP_LOAD = 90;
 
 typedef struct {
