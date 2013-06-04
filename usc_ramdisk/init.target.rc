@@ -47,7 +47,7 @@ on fs
 
     wait /dev/block/platform/msm_sdcc.1/by-name/cache
     check_fs /dev/block/platform/msm_sdcc.1/by-name/cache ext4
-    mount ext4 /dev/block/platform/msm_sdcc.1/by-name/cache /cache nosuid nodev noatime noauto_da_alloc,discard,journal_async_commit,errors=panic
+    mount ext4 /dev/block/platform/msm_sdcc.1/by-name/cache /cache nosuid nodev noatime barrier=0 noauto_da_alloc,data=writeback
 
     #wait /dev/block/platform/msm_sdcc.1/by-name/persist
     #check_fs /dev/block/platform/msm_sdcc.1/by-name/persist ext4
@@ -73,12 +73,12 @@ on fs_selinux
     setprop ro.crypto.fuse_sdcard true
 
 # for LogMeIn 
-    mount ext4 /dev/block/platform/msm_sdcc.1/by-name/system /system rw wait errors=panic remount
+#    mount ext4 /dev/block/platform/msm_sdcc.1/by-name/system /system rw wait errors=panic remount
 
-    chown graphics /system/bin/RescueStarter
-    chmod 0755 /system/bin/RescueStarter
-    chown graphics /system/bin/RescueServer
-    chmod 0755 /system/bin/RescueServer
+#    chown graphics /system/bin/RescueStarter
+#    chmod 0755 /system/bin/RescueStarter
+#    chown graphics /system/bin/RescueServer
+#    chmod 0755 /system/bin/RescueServer
 
     mount ext4 /dev/block/platform/msm_sdcc.1/by-name/system /system ro wait errors=panic remount
 
@@ -162,10 +162,10 @@ service rf4ce /system/bin/rf4ce
    user root
    group root
 
-service qosmgrd /system/bin/qosmgr /system/etc/qosmgr_rules.xml
-   user system
-   group system
-   disabled
+# service qosmgrd /system/bin/qosmgr /system/etc/qosmgr_rules.xml
+#   user system
+#   group system
+#   disabled
 
 service kickstart /system/bin/qcks -i /firmware-mdm/image/
     user root

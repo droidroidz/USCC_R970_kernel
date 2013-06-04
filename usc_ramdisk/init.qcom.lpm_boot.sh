@@ -76,10 +76,10 @@ echo 0 > /sys/module/pm_8660/modes/cpu0/power_collapse/idle_enabled
 echo 0 > /sys/module/pm_8660/modes/cpu1/power_collapse/idle_enabled
 echo 0 > /sys/module/pm_8660/modes/cpu2/power_collapse/idle_enabled
 echo 0 > /sys/module/pm_8660/modes/cpu3/power_collapse/idle_enabled
-echo "powersave" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-echo "powersave" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
-echo "powersave" > /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor
-echo "powersave" > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor
+echo "ondemand" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+echo "ondemand" > /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
+echo "ondemand" > /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor
+echo "ondemand" > /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor
 echo 0 > /sys/devices/system/cpu/cpu1/online
 echo 0 > /sys/devices/system/cpu/cpu2/online
 echo 0 > /sys/devices/system/cpu/cpu3/online
