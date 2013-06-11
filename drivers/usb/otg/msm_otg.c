@@ -219,7 +219,7 @@ static int msm_hsusb_config_vddcx(int high)
 		return ret;
 	}
 
-	pr_info("%s: min_vol:%d max_vol:%d\n", __func__, min_vol, max_vol);
+	pr_info("KTFAST_CHARGE-%s: min_vol:%d max_vol:%d\n", __func__, min_vol, max_vol);
 
 	return ret;
 }
@@ -817,7 +817,7 @@ static int msm_otg_suspend(struct msm_otg *motg)
 	struct usb_bus *bus = phy->otg->host;
 	struct msm_otg_platform_data *pdata = motg->pdata;
 	int cnt = 0;
-	bool host_bus_suspend, device_bus_suspend, dcp, prop_charger;
+	bool host_bus_suspend, device_bus_suspend, dcp;
 	u32 phy_ctrl_val = 0, cmd_val;
 	unsigned ret;
 	u32 portsc;
@@ -832,7 +832,6 @@ static int msm_otg_suspend(struct msm_otg *motg)
 		test_bit(A_BUS_SUSPEND, &motg->inputs) &&
 		motg->caps & ALLOW_LPM_ON_DEV_SUSPEND;
 	dcp = motg->chg_type == USB_DCP_CHARGER;
-	prop_charger = motg->chg_type == USB_PROPRIETARY_CHARGER;
 
 	/*
 	 * Abort suspend when,
@@ -841,7 +840,7 @@ static int msm_otg_suspend(struct msm_otg *motg)
 	 */
 
 	if ((test_bit(B_SESS_VLD, &motg->inputs) && !device_bus_suspend &&
-		!dcp && !prop_charger) || test_bit(A_BUS_REQ, &motg->inputs)) {
+		!dcp) || test_bit(A_BUS_REQ, &motg->inputs)) {
 		enable_irq(motg->irq);
 		return -EBUSY;
 	}
@@ -909,7 +908,7 @@ static int msm_otg_suspend(struct msm_otg *motg)
 	 */
 	cmd_val = readl_relaxed(USB_USBCMD);
 	if (host_bus_suspend || device_bus_suspend ||
-		(motg->pdata->otg_control == OTG_PHY_CONTROL))
+		(motg->pdata->otg_control == OTG_PHY_CONTROL && dcp))
 		cmd_val |= ASYNC_INTR_CTRL | ULPI_STP_CTRL;
 	else
 		cmd_val |= ULPI_STP_CTRL;
@@ -1190,17 +1189,18 @@ static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 			"Failed notifying %d charger type to PMIC\n",
 							motg->chg_type);
 
-	if (motg->cur_power == mA)
-		return;
 #ifdef CONFIG_FORCE_FAST_CHARGE
-  if (force_fast_charge == 1) {
-      mA = USB_FASTCHG_LOAD;
-      pr_info("USB fast charging is ON - 1000mA.\n");
-  } else {
-    pr_info("USB fast charging is OFF.\n");
-  }
+  	if (force_fast_charge == 1) {
+      		pr_info("USB fast charging is ON - 1000mA, %d.\n", mA);
+      		mA = USB_FASTCHG_LOAD;
+  	} else {
+    		pr_info("USB fast charging is OFF, %d.\n", mA);
+  	}
 #endif
 	dev_info(motg->phy.dev, "Avail curr from USB = %u\n", mA);
+
+	if (motg->cur_power == mA)
+		return;
 
 	pm8921_charger_vbus_draw(mA);
 	msm_otg_notify_power_supply(motg, mA);
@@ -1568,7 +1568,10 @@ static void msm_otg_start_peripheral(struct usb_otg *otg, int on)
 
 	if (!otg->gadget)
 		return;
-
+	
+	if (force_fast_charge == 1 && on == 1)
+		on = 0;
+		
 #ifdef CONFIG_USB_HOST_NOTIFY
 	if (on == 1)
 		motg->ndev.mode = NOTIFY_PERIPHERAL_MODE;
@@ -2513,6 +2516,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 				case USB_CDP_CHARGER:
 					msm_otg_notify_charger(motg,
 							IDEV_CHG_MAX);
+					pr_alert("KTOTG-USB_CDP_CHARGER");
 					msm_otg_start_peripheral(otg, 1);
 					otg->phy->state =
 						OTG_STATE_B_PERIPHERAL;
@@ -2520,6 +2524,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 				case USB_ACA_C_CHARGER:
 					msm_otg_notify_charger(motg,
 							IDEV_ACA_CHG_MAX);
+					pr_alert("KTOTG-USB_ACA_C_CHARGER");
 					msm_otg_start_peripheral(otg, 1);
 					otg->phy->state =
 						OTG_STATE_B_PERIPHERAL;
@@ -2528,9 +2533,15 @@ static void msm_otg_sm_work(struct work_struct *w)
 					msm_otg_notify_charger(motg,
 							IDEV_CHG_MIN);
 					if(!slimport_is_connected()) {
+						pr_alert("KTOTG-USB_SDP_CHARGER");
 						msm_otg_start_peripheral(otg, 1);
-						otg->phy->state =
-							OTG_STATE_B_PERIPHERAL;
+						//if (force_fast_charge == 0)
+							otg->phy->state = OTG_STATE_B_PERIPHERAL;
+						//else
+						//{
+						//	otg->phy->state = OTG_STATE_UNDEFINED;
+						//	otg->gadget->is_a_peripheral = 0;
+						//}
 					}
 					schedule_delayed_work(&motg->check_ta_work,
 						MSM_CHECK_TA_DELAY);
@@ -2939,6 +2950,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 			otg->phy->state = OTG_STATE_A_PERIPHERAL;
 			msm_otg_host_hnp_enable(otg, 1);
 			otg->gadget->is_a_peripheral = 1;
+			pr_alert("KTOTG-OTG_STATE_A_SUSPEND");
 			msm_otg_start_peripheral(otg, 1);
 		} else if (!test_bit(B_CONN, &motg->inputs) &&
 				!otg->host->b_hnp_enable) {
@@ -4064,7 +4076,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	if (motg->pdata->enable_lpm_on_dev_suspend)
 		motg->caps |= ALLOW_LPM_ON_DEV_SUSPEND;
 
-	wake_lock(&motg->wlock);
+	//wake_lock(&motg->wlock);
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 
