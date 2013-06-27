@@ -26,6 +26,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/slab.h>
+#include <linux/dmi.h>
 
 #include "xhci.h"
 
@@ -407,6 +408,12 @@ int xhci_init(struct usb_hcd *hcd)
 	retval = xhci_mem_init(xhci, GFP_KERNEL);
 	xhci_dbg(xhci, "Finished xhci_init\n");
 
+	/* Initializing Compliance Mode Recovery Data If Needed */
+	if (compliance_mode_recovery_timer_quirk_check()) {
+		xhci->quirks |= XHCI_COMP_MODE_QUIRK;
+		compliance_mode_recovery_timer_init(xhci);
+	}
+
 	return retval;
 }
 
@@ -622,6 +629,11 @@ void xhci_stop(struct usb_hcd *hcd)
 	del_timer_sync(&xhci->event_ring_timer);
 #endif
 
+	/* Deleting Compliance Mode Recovery Timer */
+	if ((xhci->quirks & XHCI_COMP_MODE_QUIRK) &&
+			(!(xhci_all_ports_seen_u0(xhci))))
+		del_timer_sync(&xhci->comp_mode_recovery_timer);
+
 	if (xhci->quirks & XHCI_AMD_PLL_FIX)
 		usb_amd_dev_put();
 
@@ -652,7 +664,7 @@ void xhci_shutdown(struct usb_hcd *hcd)
 {
 	struct xhci_hcd *xhci = hcd_to_xhci(hcd);
 
-	if (xhci->quirks && XHCI_SPURIOUS_REBOOT)
+	if (xhci->quirks & XHCI_SPURIOUS_REBOOT)
 		usb_disable_xhci_ports(to_pci_dev(hcd->self.controller));
 
 	spin_lock_irq(&xhci->lock);
@@ -816,6 +828,16 @@ int xhci_suspend(struct xhci_hcd *xhci)
 	}
 	spin_unlock_irq(&xhci->lock);
 
+	/*
+	 * Deleting Compliance Mode Recovery Timer because the xHCI Host
+	 * is about to be suspended.
+	 */
+	if ((xhci->quirks & XHCI_COMP_MODE_QUIRK) &&
+			(!(xhci_all_ports_seen_u0(xhci)))) {
+		del_timer_sync(&xhci->comp_mode_recovery_timer);
+		xhci_dbg(xhci, "Compliance Mode Recovery Timer Deleted!\n");
+	}
+
 	/* step 5: remove core well power */
 	/* synchronize irq when using MSI-X */
 	xhci_msix_sync_irqs(xhci);
@@ -948,6 +970,16 @@ int xhci_resume(struct xhci_hcd *xhci, bool hibernated)
 		usb_hcd_resume_root_hub(hcd);
 		usb_hcd_resume_root_hub(xhci->shared_hcd);
 	}
+
+	/*
+	 * If system is subject to the Quirk, Compliance Mode Timer needs to
+	 * be re-initialized Always after a system resume. Ports are subject
+	 * to suffer the Compliance Mode issue again. It doesn't matter if
+	 * ports have entered previously to U0 before system's suspension.
+	 */
+	if (xhci->quirks & XHCI_COMP_MODE_QUIRK)
+		compliance_mode_recovery_timer_init(xhci);
+
 	return retval;
 }
 #endif	/* CONFIG_PM */
