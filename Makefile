@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 51
-EXTRAVERSION = -v1.5
+EXTRAVERSION = -v1.5-release
 NAME = Saber-toothed Squirrel
 
 # *DOCUMENTATION*
