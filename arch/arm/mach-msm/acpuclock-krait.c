@@ -54,8 +54,6 @@ int speed_bin;
 int pvs_bin;
 #endif
 
-extern void reset_num_cpu_freqs(void);
-
 static DEFINE_MUTEX(driver_lock);
 static DEFINE_SPINLOCK(l2_lock);
 
@@ -1036,7 +1034,6 @@ static void __init cpufreq_table_init(void) {}
 static void __init dcvs_freq_init(void)
 {
 	int i;
-	reset_num_cpu_freqs();
 
 	for (i = 0; drv.acpu_freq_tbl[i].speed.khz != 0; i++)
 		if (drv.acpu_freq_tbl[i].use_for_scaling)
