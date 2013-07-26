@@ -47,6 +47,8 @@
 #if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
 #define FW_IMAGE_NAME_B0_HSYNC		"tsp_synaptics/jactive/synaptics_b0_hsync.fw"
 #define FW_IMAGE_NAME_B0_HSYNC_FAC	"tsp_synaptics/jactive/synaptics_b0_hsync_fac.fw"
+#define FW_IMAGE_NAME_B0_HSYNC04	"tsp_synaptics/jactive/synaptics_b0_hsync04.fw"
+#define FW_IMAGE_NAME_B0_HSYNC04_FAC	"tsp_synaptics/jactive/synaptics_b0_hsync04_fac.fw"
 
 /* NON HYNC F/W will be removed */
 /* PRODUCT ID : SY 01, SY 02, S5000B */
@@ -292,7 +294,6 @@ struct synaptics_rmi4_data {
 	int fw_version_of_bin;		/* firmware version of binary */
 	int fw_release_date_of_ic;	/* Config release data from IC */
 	int panel_revision;		/* Octa panel revision */
-	int factory_read_panel_wakeup;
 	bool doing_reflash;
 
 #ifdef CONFIG_GLOVE_TOUCH

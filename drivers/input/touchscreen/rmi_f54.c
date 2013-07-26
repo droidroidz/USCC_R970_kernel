@@ -2173,11 +2173,7 @@ static void get_fw_ver_bin(void)
 	set_default_result(data);
 	sprintf(data->cmd_buff, "SY%02X%02X%02X",
 			rmi4_data->ic_revision_of_bin,
-#ifdef CONFIG_TOUCHSCREEN_FACTORY_PLATFORM
-			rmi4_data->factory_read_panel_wakeup,
-#else
 			rmi4_data->board->panel_touch_type,
-#endif
 			rmi4_data->fw_version_of_bin);
 	set_cmd_result(data, data->cmd_buff, strlen(data->cmd_buff));
 
@@ -2194,11 +2190,7 @@ static void get_fw_ver_ic(void)
 	set_default_result(data);
 	sprintf(data->cmd_buff, "SY%02X%02X%02X",
 			rmi4_data->ic_revision_of_ic,
-#ifdef CONFIG_TOUCHSCREEN_FACTORY_PLATFORM
-			rmi4_data->factory_read_panel_wakeup,
-#else
 			rmi4_data->board->panel_touch_type,
-#endif
 			rmi4_data->fw_version_of_ic);
 
 	set_cmd_result(data, data->cmd_buff, strlen(data->cmd_buff));
@@ -2402,8 +2394,13 @@ static int check_rx_tx_num(void)
 			__func__, data->cmd_param[0], data->cmd_param[1]);
 		node = -1;
 	} else {
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+		node = data->cmd_param[0] * rmi4_data->num_of_rx +
+						data->cmd_param[1];
+#else
 		node = data->cmd_param[0] * rmi4_data->num_of_tx +
 						data->cmd_param[1];
+#endif
 		dev_info(&rmi4_data->i2c_client->dev, "%s: node = %d\n",
 				__func__, node);
 	}

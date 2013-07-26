@@ -41,7 +41,7 @@
 #include "msm_ispif.h"
 #include "msm_sensor.h"
 
-#define JC_ISP_TIMEOUT		5000
+#define JC_ISP_TIMEOUT		3000
 
 #define JC_LOAD_FW_MAIN	1
 #define JC_DUMP_FW	1
@@ -146,6 +146,7 @@ struct jc_ctrl_t {
 	bool isp_null_read_sensor_fw;
 	bool samsung_app;
 	bool factory_bin;
+	int fw_retry_cnt;
 };
 
 static struct jc_ctrl_t *jc_ctrl;
@@ -835,9 +836,11 @@ static int jc_check_sum(void)
 		err = jc_readw(JC_CATEGORY_FLASH, 0x0A, &factarea_val);
 		cam_err("FactArea Checksum : %x", factarea_val);
 		cam_err("ISP - FactArea Checksum : %x", isp_val-factarea_val);
+
+		return isp_val-factarea_val;
 	}
 
-	return 0;
+	return isp_val;
 }
 
 static int jc_phone_fw_to_isp(void)
@@ -847,6 +850,7 @@ static int jc_phone_fw_to_isp(void)
 	int val;
 	int chip_erase;
 
+retry:
 	/* Set SIO receive mode : 0x4C, rising edge*/
 	err = jc_writeb(JC_CATEGORY_FLASH, 0x4B, 0x4C);
 	cam_err("err : %d", err);
@@ -895,7 +899,13 @@ static int jc_phone_fw_to_isp(void)
 			0x07, &val);
 	} while (val == 0x01 && retries++ < JC_I2C_VERIFY);
 
-	jc_check_sum();
+	err = jc_check_sum();
+
+	if (err != 0 && jc_ctrl->fw_retry_cnt < 2) {
+		cam_err("checksum error!! retry fw write!!: %d", jc_ctrl->fw_retry_cnt);
+		jc_ctrl->fw_retry_cnt++;
+		goto retry;
+	}
 
 	return 0;
 }
@@ -907,6 +917,7 @@ static int jc_read_from_sensor_fw(void)
 	int val = 0;
 	int chip_erase;
 
+retry:
 	/* Read Sensor Flash */
 	err = jc_writeb(JC_CATEGORY_FLASH, 0x63, 0x01);
 	retries = 0;
@@ -939,7 +950,13 @@ static int jc_read_from_sensor_fw(void)
 			0x07, &val);
 	} while (val == 0x01 && retries++ < JC_I2C_VERIFY);
 
-	jc_check_sum();
+	err = jc_check_sum();
+
+	if (err != 0 && jc_ctrl->fw_retry_cnt < 2) {
+		cam_err("checksum error!! retry fw write!!: %d", jc_ctrl->fw_retry_cnt);
+		jc_ctrl->fw_retry_cnt++;
+		goto retry;
+	}
 
 	return 0;
 }
@@ -2099,8 +2116,9 @@ static int jc_set_touch_af_pos(int x, int y)
 
 	cam_info("Entered, touch af pos (%x, %x)\n", x, y);
 
-	if (jc_ctrl->af_mode >=	3
-		&& jc_ctrl->af_mode <=6) {
+	if ((jc_ctrl->af_mode >= 3
+		&& jc_ctrl->af_mode <=6)
+		&& jc_ctrl->touch_af_mode == true) {
 		cam_info("Now CAF mode. Return touch position setting!\n");
 		return rc;
 	}
@@ -2515,6 +2533,17 @@ static int jc_set_ocr_focus_mode(int mode)
 	return rc;
 }
 
+static int jc_set_af_window(int mode)
+{
+	int32_t rc = 0;
+
+	cam_info("Entered, af window %d\n", mode);
+
+	jc_writeb(JC_CATEGORY_TEST, 0x8D, mode);
+
+	return rc;
+}
+
 static int jc_set_softlanding(void)
 {
 	int32_t rc = 0;
@@ -2754,13 +2783,27 @@ void sensor_native_control(void __user *arg)
 		if (ctrl_info.value_1 == CAM_FW_MODE_DUMP) {
 			jc_sensor_power_reset(&jc_s_ctrl);
 #if JC_DUMP_FW
-	jc_dump_fw();
+			jc_dump_fw();
 #endif
 			jc_sensor_power_down(&jc_s_ctrl);
 		} else if (ctrl_info.value_1 == CAM_FW_MODE_UPDATE) {
 			jc_sensor_power_reset(&jc_s_ctrl);
-			jc_load_fw_main();
-			jc_s_ctrl.func_tbl->sensor_power_up(&jc_s_ctrl);
+			cam_info("ISP FW Force Write!\n");
+			jc_get_phone_version();
+			jc_load_SIO_fw();
+			jc_phone_fw_to_isp();
+			jc_sensor_power_reset(&jc_s_ctrl);
+			jc_get_isp_version();
+			jc_isp_boot();
+
+			cam_info("nv12 output setting\n");
+			jc_writeb(JC_CATEGORY_CAPCTRL,
+					0x0, 0x0f);
+
+			cam_info("Sensor version : %s\n", sysfs_sensor_fw_str);
+			cam_info("ISP version : %s\n", sysfs_isp_fw_str);
+			cam_info("Phone version : %s\n", sysfs_phone_fw_str);
+			cam_info("ISP FW Force Write Done!\n");
 		}
 		break;
 
@@ -2895,6 +2938,20 @@ void sensor_native_control(void __user *arg)
 			jc_ctrl->factory_bin = true;
 		else
 			jc_ctrl->factory_bin = false;
+		break;
+
+	case EXT_CAM_START_GOLF_SHOT:
+		cam_info("Golf shot start, 1/1000 shutter speed");
+		jc_writeb(0x03, 0x0B, 0x18);
+		break;
+
+	case EXT_CAM_STOP_GOLF_SHOT:
+		cam_info("Golf shot stop, return normal shutter speed");
+		jc_writeb(0x03, 0x0B, 0x08);
+		break;
+
+	case EXT_CAM_SET_AF_WINDOW:
+		jc_set_af_window(ctrl_info.value_1);
 		break;
 
 	default:
@@ -3039,6 +3096,8 @@ static int jc_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	jc_ctrl->need_restart_caf = false;
 	jc_ctrl->is_isp_null = false;
 	jc_ctrl->isp_null_read_sensor_fw = false;
+	jc_ctrl->touch_af_mode = false;
+	jc_ctrl->fw_retry_cnt = 0;
 
 	rc = msm_camera_request_gpio_table(data, 1);
 	if (rc < 0)
@@ -3152,6 +3211,7 @@ static int jc_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 				if (result_sensor_isp > 0) {
 					cam_info("Sensor > ISP, update from sensor\n");
+					jc_ctrl->isp_null_read_sensor_fw = true;
 					jc_isp_reset(s_ctrl);
 					jc_load_SIO_fw();
 					jc_read_from_sensor_fw();
@@ -3342,6 +3402,51 @@ void jc_sensor_start_stream(struct msm_sensor_ctrl_t *s_ctrl)
 	CAM_DEBUG("X");
 }
 
+static int jc_sensor_start_stream_internal(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int rc = 0;
+
+	CAM_DEBUG("E");
+	if (jc_ctrl->anti_stream_off == true) {
+		jc_ctrl->anti_stream_off = false;
+	} else {
+		/* change to monitor mode */
+		cam_info("change to monitor mode\n");
+		rc = jc_set_mode(JC_MONITOR_MODE);
+		jc_ctrl->stream_on = true;
+		if (jc_ctrl->af_mode == 3) {
+			cam_info("start CAF\n");
+			jc_writeb(JC_CATEGORY_LENS,
+					0x01, 0x03);
+			jc_writeb(JC_CATEGORY_LENS,
+					0x02, 0x01);
+		} else if (jc_ctrl->af_mode == 4) {
+			cam_info("start macro CAF\n");
+			jc_writeb(JC_CATEGORY_LENS,
+					0x01, 0x07);
+			jc_writeb(JC_CATEGORY_LENS,
+					0x02, 0x01);
+		} else if (jc_ctrl->af_mode == 5) {
+			msleep(50);
+			cam_info("start Movie CAF\n");
+			jc_writeb(JC_CATEGORY_LENS,
+					0x01, 0x04);
+			jc_writeb(JC_CATEGORY_LENS,
+					0x02, 0x01);
+		} else if (jc_ctrl->af_mode == 6) {
+			msleep(50);
+			cam_info("FD CAF\n");
+			jc_writeb(JC_CATEGORY_LENS,
+					0x01, 0x05);
+			jc_writeb(JC_CATEGORY_LENS,
+					0x02, 0x01);
+		}
+	}
+	CAM_DEBUG("X");
+
+	return rc;
+}
+
 void jc_sensor_stop_stream(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	CAM_DEBUG("E");
@@ -3352,6 +3457,22 @@ void jc_sensor_stop_stream(struct msm_sensor_ctrl_t *s_ctrl)
 		jc_ctrl->stream_on = false;
 	}
 	CAM_DEBUG("X");
+}
+
+static int jc_sensor_stop_stream_internal(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int rc = 0;
+
+	CAM_DEBUG("E");
+	if (jc_ctrl->anti_stream_off == false) {
+		/* change to parameter mode */
+		cam_info("change to parameter mode\n");
+		rc = jc_set_mode(JC_PARMSET_MODE);
+		jc_ctrl->stream_on = false;
+	}
+	CAM_DEBUG("X");
+
+	return rc;
 }
 
 long jc_sensor_subdev_ioctl(struct v4l2_subdev *sd,
@@ -3432,11 +3553,12 @@ int jc_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		break;
 
 	case CFG_START_STREAM:
-		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
+		rc = jc_sensor_start_stream_internal(s_ctrl);
 		break;
 
 	case CFG_STOP_STREAM:
-		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
+		rc = jc_sensor_stop_stream_internal(s_ctrl);
+		cam_info("%s CFG_STOP_STREAM : %d\n", __func__, (int)rc);
 		break;
 
 	case CFG_GET_AF_MAX_STEPS:
@@ -3529,7 +3651,7 @@ static ssize_t jc_camera_check_app_store(struct device *dev,
 static DEVICE_ATTR(rear_camtype, S_IRUGO, jc_camera_type_show, NULL);
 static DEVICE_ATTR(rear_camfw, S_IRUGO, jc_camera_fw_show, NULL);
 static DEVICE_ATTR(rear_checkfw, S_IRUGO, jc_camera_check_fw_show, NULL);
-static DEVICE_ATTR(rear_checkApp, S_IRUGO|S_IWUGO,
+static DEVICE_ATTR(rear_checkApp, S_IRUGO|S_IWUSR|S_IWGRP,
     jc_camera_check_app_show, jc_camera_check_app_store);
 
 int32_t jc_init_vreg_port(struct msm_sensor_ctrl_t *s_ctrl)
