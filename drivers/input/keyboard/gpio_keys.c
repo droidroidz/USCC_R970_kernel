@@ -29,8 +29,10 @@
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
 #include <linux/spinlock.h>
-#if CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>
+#else
+#include <linux/sec_class.h>
 #endif
 
 struct gpio_button_data {
@@ -419,7 +421,7 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	unsigned int type = button->type ?: EV_KEY;
 	int state = (gpio_get_value_cansleep(button->gpio) ? 1 : 0) ^ button->active_low;
 
-#if CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_DEBUG
 	sec_debug_check_crash_key(button->code, state);
 #endif
 	if (type == EV_ABS) {
@@ -989,8 +991,8 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 	}
 	input_sync(input);
 
-	sec_key = device_create(sec_class, NULL, 0, NULL, "sec_key");
 #ifdef CONFIG_SENSORS_HALL
+	sec_key = device_create(sec_class, NULL, 0, NULL, "sec_key");
 	if (IS_ERR(sec_key))
 		pr_err("Failed to create device(sec_key)!\n");
 
@@ -999,7 +1001,7 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 		pr_err("Failed to create device file(%s)!, error: %d\n",
 			dev_attr_hall_detect.attr.name, ret);
 	}
-#endif
+
 	ret = device_create_file(sec_key, &dev_attr_sec_key_pressed);
 	if (ret) {
 		pr_err("Failed to create device file in sysfs entries(%s)!\n",
@@ -1011,6 +1013,7 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 			dev_attr_wakeup_keys.attr.name, ret);
 	}
 	dev_set_drvdata(sec_key, ddata);
+#endif
 	device_init_wakeup(&pdev->dev, 1);
 
 	return 0;
