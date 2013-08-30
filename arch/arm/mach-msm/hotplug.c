@@ -29,6 +29,8 @@ struct msm_hotplug_device {
 	unsigned int warm_boot;
 };
 
+static cpumask_t cpu_dying_mask;
+
 static DEFINE_PER_CPU_SHARED_ALIGNED(struct msm_hotplug_device,
 			msm_hotplug_devices);
 
@@ -75,12 +77,12 @@ static inline void platform_do_lowpower(unsigned int cpu)
 
 int platform_cpu_kill(unsigned int cpu)
 {
-	int ret;
+	int ret = 0;
 
-	ret = msm_pm_wait_cpu_shutdown(cpu);
-	if (ret)
-		return 0;
-	return 1;
+	if (cpumask_test_and_clear_cpu(cpu, &cpu_dying_mask))
+		ret = msm_pm_wait_cpu_shutdown(cpu);
+
+	return ret ? 0 : 1;
 }
 
 /*
@@ -142,6 +144,7 @@ static int hotplug_rtb_callback(struct notifier_block *nfb,
 		uncached_logk(LOGK_HOTPLUG, (void *)(cpudata | this_cpumask));
 		break;
 	case CPU_DYING:
+		cpumask_set_cpu((unsigned long)hcpu, &cpu_dying_mask);
 		uncached_logk(LOGK_HOTPLUG, (void *)(cpudata & ~this_cpumask));
 		break;
 	default:
