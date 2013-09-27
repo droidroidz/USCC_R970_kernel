@@ -997,6 +997,7 @@ static void armv7pmu_enable_event(struct hw_perf_event *hwc, int idx, int cpu)
 {
 	unsigned long flags;
 	struct pmu_hw_events *events = cpu_pmu->get_hw_events();
+	unsigned long long prev_count = local64_read(&hwc->prev_count);
 
 	/*
 	 * Enable counter and interrupt, and set the counter to count
@@ -1021,6 +1022,9 @@ static void armv7pmu_enable_event(struct hw_perf_event *hwc, int idx, int cpu)
 	 * Enable interrupt for this counter
 	 */
 	armv7_pmnc_enable_intens(idx);
+
+	/* Restore prev val */
+	armv7pmu_write_counter(idx, prev_count & 0xffffffff);
 
 	/*
 	 * Enable counter
@@ -1235,6 +1239,8 @@ static int armv7_a7_map_event(struct perf_event *event)
 }
 
 static struct arm_pmu armv7pmu = {
+	.request_pmu_irq	= armpmu_generic_request_irq,
+	.free_pmu_irq		= armpmu_generic_free_irq,
 	.handle_irq		= armv7pmu_handle_irq,
 	.enable			= armv7pmu_enable_event,
 	.disable		= armv7pmu_disable_event,

@@ -112,6 +112,10 @@ static int kgsl_iommu_fault_handler(struct iommu_domain *domain,
 	struct kgsl_device *device;
 	struct adreno_device *adreno_dev;
 	unsigned int no_page_fault_log = 0;
+	unsigned int curr_context_id = 0;
+	unsigned int curr_global_ts = 0;
+	static struct adreno_context *curr_context;
+	static struct kgsl_context *context;
 
 	ret = get_iommu_unit(dev, &mmu, &iommu_unit);
 	if (ret)
@@ -145,6 +149,22 @@ static int kgsl_iommu_fault_handler(struct iommu_domain *domain,
 
 	mmu->fault = 1;
 	iommu_dev->fault = 1;
+
+	kgsl_sharedmem_readl(&device->memstore, &curr_context_id,
+		KGSL_MEMSTORE_OFFSET(KGSL_MEMSTORE_GLOBAL, current_context));
+	context = idr_find(&device->context_idr, curr_context_id);
+	if (context != NULL)
+			curr_context = context->devctxt;
+
+	kgsl_sharedmem_readl(&device->memstore, &curr_global_ts,
+		KGSL_MEMSTORE_OFFSET(KGSL_MEMSTORE_GLOBAL, eoptimestamp));
+
+	/*
+	 * Store pagefault's timestamp and ib1 addr in context,
+	 * this information is used in GFT
+	 */
+	curr_context->pagefault = 1;
+	curr_context->pagefault_ts = curr_global_ts;
 
 	trace_kgsl_mmu_pagefault(iommu_dev->kgsldev, addr,
 			kgsl_mmu_get_ptname_from_ptbase(mmu, ptbase), 0);
@@ -1138,19 +1158,22 @@ kgsl_iommu_map(void *mmu_specific_pt,
 	unsigned int iommu_virt_addr;
 	struct kgsl_iommu_pt *iommu_pt = mmu_specific_pt;
 	int size = kgsl_sg_size(memdesc->sg, memdesc->sglen);
+	unsigned int iommu_flags = IOMMU_READ;
 
 	BUG_ON(NULL == iommu_pt);
 
+	if (protflags & GSL_PT_PAGE_WV)
+		iommu_flags |= IOMMU_WRITE;
 
 	iommu_virt_addr = memdesc->gpuaddr;
 
 	ret = iommu_map_range(iommu_pt->domain, iommu_virt_addr, memdesc->sg,
-				size, (IOMMU_READ | IOMMU_WRITE));
+				size, iommu_flags);
 	if (ret) {
 		KGSL_CORE_ERR("iommu_map_range(%p, %x, %p, %d, %d) "
 				"failed with err: %d\n", iommu_pt->domain,
 				iommu_virt_addr, memdesc->sg, size,
-				(IOMMU_READ | IOMMU_WRITE), ret);
+				iommu_flags, ret);
 		return ret;
 	}
 
@@ -1273,7 +1296,10 @@ static void kgsl_iommu_default_setstate(struct kgsl_mmu *mmu,
 	pt_base &= (iommu->iommu_reg_list[KGSL_IOMMU_CTX_TTBR0].reg_mask <<
 			iommu->iommu_reg_list[KGSL_IOMMU_CTX_TTBR0].reg_shift);
 
-	//if (msm_soc_version_supports_iommu_v1())
+	/* For v1 SMMU GPU needs to be idle for tlb invalidate as well */
+	if (msm_soc_version_supports_iommu_v1())
+		kgsl_idle(mmu->device);
+
 	/* Acquire GPU-CPU sync Lock here */
 	msm_iommu_lock();
 
