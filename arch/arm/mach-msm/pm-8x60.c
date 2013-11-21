@@ -61,6 +61,10 @@
 #include <mach/gpiomux.h>
 #include <linux/mfd/pm8xxx/pm8921.h>
 
+#ifdef CONFIG_SEC_GPIO_DVS
+#include <linux/secgpio_dvs.h>
+#endif
+
 /******************************************************************************
  * Debug Definitions
  *****************************************************************************/
@@ -82,6 +86,7 @@ module_param_named(
 	debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
 );
 static int msm_pm_retention_tz_call;
+static struct msm_pm_sleep_status_data *msm_pm_slp_sts;
 
 /******************************************************************************
  * Sleep Modes and Parameters
@@ -1118,9 +1123,6 @@ module_param_named(
 static int msm_pm_prepare_late(void)
 {
 	if (msm_pm_secdebug_mask & MSM_PM_SECDEBUG_LEVLE1) {
-#ifdef CONFIG_DEBUG_FS
-		regulator_showall_enabled();
-#endif
 		msm_gpio_print_enabled();
 		pm_gpio_dbg_showall(1);
 		pm_mpp_dbg_showall(1);
@@ -1128,7 +1130,16 @@ static int msm_pm_prepare_late(void)
 		pm_gpio_dbg_showall(0);
 		pm_mpp_dbg_showall(0);
 	}
+	regulator_showall_enabled();
 
+#ifdef CONFIG_SEC_GPIO_DVS
+	/************************ Caution !!! ****************************/
+	/* This function must be located in appropriate SLEEP position
+	 * in accordance with the specification of each BB vendor.
+	 */
+	/************************ Caution !!! ****************************/
+	gpio_dvs_check_sleepgpio();
+#endif
 	return 0;
 }
 

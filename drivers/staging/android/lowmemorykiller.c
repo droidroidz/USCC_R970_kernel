@@ -48,46 +48,34 @@
 #include <linux/mm_inline.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
+#include <linux/cpu.h>
 #include <asm/atomic.h>
 
-#define MIN_FREESWAP_PAGES 8192 /* 32MB */
-#define MIN_RECLAIM_PAGES 512  /* 2MB */
-#define MIN_CSWAP_INTERVAL (10*HZ)  /* 10 senconds */
-
-#define _KCOMPCACHE_DEBUG 0
-#if _KCOMPCACHE_DEBUG
-#define lss_dbg(x...) printk("lss: " x)
-#else
-#define lss_dbg(x...)
+#if defined(CONFIG_SMP)
+#define NR_TO_RECLAIM_PAGES 		(1024*2) /* 8MB*cpu_core, include file pages */
+#define MIN_FREESWAP_PAGES 		(NR_TO_RECLAIM_PAGES*2*NR_CPUS)
+#define MIN_RECLAIM_PAGES 		(NR_TO_RECLAIM_PAGES/8)
+#define MIN_CSWAP_INTERVAL 		(10*HZ) /* 10 senconds */
+#else /* CONFIG_SMP */
+#define NR_TO_RECLAIM_PAGES 		1024 /* 4MB, include file pages */
+#define MIN_FREESWAP_PAGES 		(NR_TO_RECLAIM_PAGES*2)
+#define MIN_RECLAIM_PAGES 		(NR_TO_RECLAIM_PAGES/8)
+#define MIN_CSWAP_INTERVAL 		(10*HZ) /* 10 senconds */
 #endif
 
 struct soft_reclaim {
-	unsigned long nr_total_soft_reclaimed;
-	unsigned long nr_total_soft_scanned;
-	unsigned long nr_last_soft_reclaimed;
-	unsigned long nr_last_soft_scanned;
-	int nr_empty_reclaimed;
-
 	atomic_t kcompcached_running;
 	atomic_t need_to_reclaim;
 	atomic_t lmk_running;
-	atomic_t kcompcached_enable;
 	struct task_struct *kcompcached;
 };
 
-static struct soft_reclaim s_reclaim = {
-	.nr_total_soft_reclaimed = 0,
-	.nr_total_soft_scanned = 0,
-	.nr_last_soft_reclaimed = 0,
-	.nr_last_soft_scanned = 0,
-	.nr_empty_reclaimed = 0,
-	.kcompcached = NULL,
-};
-
+static struct soft_reclaim s_reclaim;
 extern atomic_t kswapd_thread_on;
 static unsigned long prev_jiffy;
+static uint32_t number_of_reclaim_pages = NR_TO_RECLAIM_PAGES;
 static uint32_t minimum_freeswap_pages = MIN_FREESWAP_PAGES;
-static uint32_t minimun_reclaim_pages = MIN_RECLAIM_PAGES;
+static uint32_t minimum_reclaim_pages = MIN_RECLAIM_PAGES;
 static uint32_t minimum_interval_time = MIN_CSWAP_INTERVAL;
 #endif /* CONFIG_ZRAM_FOR_ANDROID */
 
@@ -344,9 +332,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 #ifdef CONFIG_ZRAM_FOR_ANDROID
 void could_cswap(void)
 {
-	struct sysinfo i;
-
-	if (atomic_read(&s_reclaim.need_to_reclaim) != 1)
+	if (atomic_read(&s_reclaim.need_to_reclaim) == 0)
 		return;
 
 	if (time_before(jiffies, prev_jiffy + minimum_interval_time))
@@ -355,34 +341,16 @@ void could_cswap(void)
 	if (atomic_read(&s_reclaim.lmk_running) == 1 || atomic_read(&kswapd_thread_on) == 1) 
 		return;
 
-	si_swapinfo(&i);
-	if (i.freeswap < minimum_freeswap_pages)
-		return;
-
-	if (unlikely(s_reclaim.kcompcached == NULL))
-		return;
-
-	if (likely(atomic_read(&s_reclaim.kcompcached_enable) == 0))
+	if (nr_swap_pages < minimum_freeswap_pages)
 		return;
 
 	if (idle_cpu(task_cpu(s_reclaim.kcompcached)) && this_cpu_loadx(4) == 0) {
 		if (atomic_read(&s_reclaim.kcompcached_running) == 0) {
-			lss_dbg("wakeup kcompcached\n");
 			wake_up_process(s_reclaim.kcompcached);
-			prev_jiffy = jiffies;
 			atomic_set(&s_reclaim.kcompcached_running, 1);
+			prev_jiffy = jiffies;
 		}
 	}
-}
-
-inline void enable_soft_reclaim(void)
-{
-	atomic_set(&s_reclaim.kcompcached_enable, 1);
-}
-
-inline void disable_soft_reclaim(void)
-{
-	atomic_set(&s_reclaim.kcompcached_enable, 0);
 }
 
 inline void need_soft_reclaim(void)
@@ -398,45 +366,10 @@ inline void cancel_soft_reclaim(void)
 int get_soft_reclaim_status(void)
 {
 	int kcompcache_running = atomic_read(&s_reclaim.kcompcached_running);
-	if(kcompcache_running)
-		set_user_nice(s_reclaim.kcompcached, 0);
 	return kcompcache_running;
 }
 
-static int soft_reclaim(void)
-{
-	int nid;
-	int i;
-	unsigned long nr_soft_reclaimed;
-	unsigned long nr_soft_scanned;
-	unsigned long nr_reclaimed = 0;
-
-	for_each_node_state(nid, N_HIGH_MEMORY) {
-		pg_data_t *pgdat = NODE_DATA(nid);
-		for (i = 0; i <= 1; i++) {
-			struct zone *zone = pgdat->node_zones + i;
-			if (!populated_zone(zone))
-				continue;
-			if (zone->all_unreclaimable)
-				continue;
-
-			nr_soft_scanned = 0;
-			nr_soft_reclaimed = mem_cgroup_soft_limit_reclaim(zone,
-						0, GFP_KERNEL,
-						&nr_soft_scanned);
-	
-			s_reclaim.nr_last_soft_reclaimed = nr_soft_reclaimed;
-			s_reclaim.nr_last_soft_scanned = nr_soft_scanned;
-			s_reclaim.nr_total_soft_reclaimed += nr_soft_reclaimed;
-			s_reclaim.nr_total_soft_scanned += nr_soft_scanned;
-			nr_reclaimed += nr_soft_reclaimed;
-		}
-	}
-
-	lss_dbg("soft reclaimed %ld pages\n", nr_reclaimed);
-	return nr_reclaimed;
-}
-
+extern long rtcc_reclaim_pages(long nr_to_reclaim);
 static int do_compcache(void * nothing)
 {
 	int ret;
@@ -447,19 +380,47 @@ static int do_compcache(void * nothing)
 		if (kthread_should_stop())
 			break;
 
-		if (soft_reclaim() < minimun_reclaim_pages)
+		if (rtcc_reclaim_pages(number_of_reclaim_pages) < minimum_reclaim_pages)
 			cancel_soft_reclaim();
 
 		atomic_set(&s_reclaim.kcompcached_running, 0);
 		set_current_state(TASK_INTERRUPTIBLE);
-		set_user_nice(s_reclaim.kcompcached, 15);
 		schedule();
 	}
 
 	return 0;
 }
-#endif /* CONFIG_ZRAM_FOR_ANDROID */
 
+static ssize_t rtcc_trigger_store(struct class *class, struct class_attribute *attr,
+			const char *buf, size_t count)
+{
+	long val, magic_sign;
+
+	sscanf(buf, "%ld,%ld", &val, &magic_sign);
+
+	if (val < 0 || ((val * val - 1) != magic_sign)) {
+		pr_warning("Invalid command.\n");
+		goto out;
+	}
+
+	need_soft_reclaim();
+
+out:
+	return count;
+}
+static CLASS_ATTR(rtcc_trigger, 0200, NULL, rtcc_trigger_store);
+static struct class *kcompcache_class;
+
+static int kcompcache_idle_notifier(struct notifier_block *nb, unsigned long val, void *data)
+{
+	could_cswap();
+	return 0;
+}
+
+static struct notifier_block kcompcache_idle_nb = {
+	.notifier_call = kcompcache_idle_notifier,
+};
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 
 static struct shrinker lowmem_shrinker = {
 	.shrink = lowmem_shrink,
@@ -475,11 +436,22 @@ static int __init lowmem_init(void)
 		/* failure at boot is fatal */
 		BUG_ON(system_state == SYSTEM_BOOTING);
 	}
-	set_user_nice(s_reclaim.kcompcached, 15);
+	set_user_nice(s_reclaim.kcompcached, 0);
 	atomic_set(&s_reclaim.need_to_reclaim, 0);
 	atomic_set(&s_reclaim.kcompcached_running, 0);
-	enable_soft_reclaim();
 	prev_jiffy = jiffies;
+
+	idle_notifier_register(&kcompcache_idle_nb);
+
+	kcompcache_class = class_create(THIS_MODULE, "kcompcache");
+	if (IS_ERR(kcompcache_class)) {
+		pr_err("%s: couldn't create kcompcache class.\n", __func__);
+		return 0;
+	}
+	if (class_create_file(kcompcache_class, &class_attr_rtcc_trigger) < 0) {
+		pr_err("%s: couldn't create rtcc trigger sysfs file.\n", __func__);
+		class_destroy(kcompcache_class);
+	}
 #endif
 	return 0;
 }
@@ -488,10 +460,16 @@ static void __exit lowmem_exit(void)
 {
 	unregister_shrinker(&lowmem_shrinker);
 #ifdef CONFIG_ZRAM_FOR_ANDROID
+	idle_notifier_unregister(&kcompcache_idle_nb);
 	if (s_reclaim.kcompcached) {
 		cancel_soft_reclaim();
 		kthread_stop(s_reclaim.kcompcached);
 		s_reclaim.kcompcached = NULL;
+	}
+
+	if (kcompcache_class) {
+		class_remove_file(kcompcache_class, &class_attr_rtcc_trigger);
+		class_destroy(kcompcache_class);
 	}
 #endif
 }
@@ -592,8 +570,9 @@ module_param_named(lmkcount, lmk_count, uint, S_IRUGO);
 #endif
 
 #ifdef CONFIG_ZRAM_FOR_ANDROID
+module_param_named(nr_reclaim, number_of_reclaim_pages, uint, S_IRUSR | S_IWUSR);
 module_param_named(min_freeswap, minimum_freeswap_pages, uint, S_IRUSR | S_IWUSR);
-module_param_named(min_reclaim, minimun_reclaim_pages, uint, S_IRUSR | S_IWUSR);
+module_param_named(min_reclaim, minimum_reclaim_pages, uint, S_IRUSR | S_IWUSR);
 module_param_named(min_interval, minimum_interval_time, uint, S_IRUSR | S_IWUSR);
 #endif /* CONFIG_ZRAM_FOR_ANDROID */
 

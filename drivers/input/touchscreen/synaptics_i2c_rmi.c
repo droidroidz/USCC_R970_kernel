@@ -1451,8 +1451,7 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 			wy = finger_data->wy;
 #ifdef EDGE_SWIPE
 			if (f51) {
-				if ((f51->proximity_controls & HAS_EDGE_SWIPE)
-					&& f51->surface_data.palm) {
+				if (f51->proximity_controls & HAS_EDGE_SWIPE) {
 					wx = f51->surface_data.wx;
 					wy = f51->surface_data.wy;
 				}
@@ -1758,6 +1757,16 @@ static void synaptics_rmi4_f51_report(struct synaptics_rmi4_data *rmi4_data,
 		input_mt_sync(rmi4_data->input_dev);
 #endif
 		input_sync(rmi4_data->input_dev);
+
+#if defined(CONFIG_TOUCHSCREEN_FACTORY_PLATFORM)
+		if (!rmi4_data->hover.state) {
+			dev_info(&rmi4_data->i2c_client->dev,
+				"%s: Hover pressed.\n", __func__);
+			rmi4_data->hover.state = 1;
+		} else {
+			rmi4_data->hover.mcount++;
+		}
+#endif
 /*
 		dev_info(&rmi4_data->i2c_client->dev,
 				"%s: Hover finger: x = %d, y = %d, z = %d\n" ,__func__, x, y, z);
@@ -3440,6 +3449,9 @@ int synaptics_rmi4_reset_device(struct synaptics_rmi4_data *rmi4_data)
 			msleep(SYNAPTICS_HW_RESET_TIME);
 
 	} else {
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+		rmi4_data->board->hsync_onoff(false);
+#endif
 		rmi4_data->board->power(false);
 		msleep(30);
 		rmi4_data->board->power(true);
@@ -3450,6 +3462,9 @@ int synaptics_rmi4_reset_device(struct synaptics_rmi4_data *rmi4_data)
 		else
 			msleep(SYNAPTICS_HW_RESET_TIME);
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+		rmi4_data->board->hsync_onoff(true);
+#endif
 		retval = synaptics_rmi4_f54_set_control(rmi4_data);
 		if (retval < 0)
 			dev_err(&rmi4_data->i2c_client->dev,
@@ -3555,6 +3570,15 @@ static void synaptics_rmi4_f51_finger_timer(unsigned long data)
 		input_mt_slot(rmi4_data->input_dev, 0);
 		input_mt_report_slot_state(rmi4_data->input_dev,
 				MT_TOOL_FINGER, 0);
+#if defined(CONFIG_TOUCHSCREEN_FACTORY_PLATFORM)
+		if (rmi4_data->hover.state) {
+			dev_info(&rmi4_data->i2c_client->dev,
+				"%s: Hover released.M[%d]\n",
+				__func__, rmi4_data->hover.mcount);
+			rmi4_data->hover.mcount = 0;
+			rmi4_data->hover.state = 0;
+		}
+#endif
 #else
 		input_mt_sync(rmi4_data->input_dev);
 #endif
@@ -3760,8 +3784,14 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 	/* define panel version : M4 / M4+ */
 	rmi4_data->panel_revision = rmi4_data->board->panel_revision;
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+	rmi4_data->board->hsync_onoff(false);
+#endif
 	rmi4_data->board->power(true);
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+	rmi4_data->board->hsync_onoff(true);
+#endif
 	rmi4_data->i2c_read = synaptics_rmi4_i2c_read;
 	rmi4_data->i2c_write = synaptics_rmi4_i2c_write;
 	rmi4_data->irq_enable = synaptics_rmi4_irq_enable;
@@ -4064,9 +4094,15 @@ static int synaptics_rmi4_input_open(struct input_dev *dev)
 
 	if (rmi4_data->touch_stopped) {
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+		rmi4_data->board->hsync_onoff(false);
+#endif
 		rmi4_data->board->power(true);
 		rmi4_data->touch_stopped = false;
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+		rmi4_data->board->hsync_onoff(true);
+#endif
 		ret = synaptics_rmi4_reinit_device(rmi4_data);
 		if (ret < 0) {
 			dev_err(&rmi4_data->i2c_client->dev,
@@ -4168,9 +4204,15 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
 	if (rmi4_data->touch_stopped) {
 		dev_info(&rmi4_data->i2c_client->dev, "%s\n", __func__);
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+		rmi4_data->board->hsync_onoff(false);
+#endif
 		rmi4_data->board->power(true);
 		rmi4_data->touch_stopped = false;
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+		rmi4_data->board->hsync_onoff(true);
+#endif
 		retval = gpio_request(rmi4_data->board->gpio, "tsp_int");
 		if (retval != 0) {
 			dev_info(&rmi4_data->i2c_client->dev, "%s: tsp int request failed, ret=%d", __func__, retval);

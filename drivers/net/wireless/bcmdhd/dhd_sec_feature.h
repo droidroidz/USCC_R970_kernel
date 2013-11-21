@@ -49,10 +49,16 @@
 #define READ_MACADDR
 #endif /* CONFIG_ARCH_MSM7X30 */
 
-#if defined(CONFIG_MACH_GC1) || defined(CONFIG_MACH_U1_NA_SPR) || defined(CONFIG_MACH_V1)
+#if defined(CONFIG_MACH_GC1) || defined(CONFIG_MACH_U1_NA_SPR) || \
+	defined(CONFIG_MACH_VIENNAEUR) || defined(CONFIG_MACH_LT03EUR) || \
+	defined(CONFIG_MACH_LT03SKT) || defined(CONFIG_MACH_LT03KTT) || \
+	defined(CONFIG_MACH_LT03LGT)
 #undef USE_CID_CHECK
 #define READ_MACADDR
-#endif /* CONFIG_MACH_GC1 || CONFIG_MACH_U1_NA_SPR || CONFIG_MACH_V1 */
+#endif	/* CONFIG_MACH_GC1 || CONFIG_MACH_U1_NA_SPR || CONFIG_MACH_VIENNAEUR ||
+	 * CONFIG_MACH_LT03EUR || CONFIG_MACH_LT03SKT || CONFIG_MACH_LT03KTT ||
+	 * CONFIG_MACH_LT03LGT
+	 */
 
 #ifdef CONFIG_MACH_P10
 #define READ_MACADDR
@@ -80,7 +86,7 @@
 #endif /* CONFIG_WLAN_REGION_CODE >= 100 && CONFIG_WLAN_REGION_CODE < 200 */
 
 #if (CONFIG_WLAN_REGION_CODE >= 200) && (CONFIG_WLAN_REGION_CODE < 300)     /* KOR */
-#undef USE_INITIAL_2G_SCAN_ORG
+#undef USE_INITIAL_2G_SCAN
 #ifndef ROAM_ENABLE
 #define ROAM_ENABLE
 #endif /* ROAM_ENABLE */
@@ -99,24 +105,37 @@
 #endif /* ROAM_AP_ENV_DETECTION */
 
 #undef WRITE_MACADDR
-#undef READ_MACADDR
-#if defined(CONFIG_BCM4334) || defined(CONFIG_BCM4335) \
-	|| defined(CONFIG_BCM4334_MODULE) || defined(CONFIG_BCM4335_MODULE)
+#ifndef READ_MACADDR
 #define READ_MACADDR
-#else
-#define RDWR_MACADDR
-#endif /* CONFIG_BCM4334 || CONFIG_BCM4335 */
+#endif /* READ_MACADDR */
 
 #if (CONFIG_WLAN_REGION_CODE == 201)     /* SKT */
+
+#ifdef CONFIG_MACH_UNIVERSAL5410
+/* Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1 */
+#define FIX_CPU_MIN_CLOCK
+#endif /* CONFIG_MACH_UNIVERSAL5410 */
+
 #endif /* CONFIG_WLAN_REGION_CODE == 201 */
 
 #if (CONFIG_WLAN_REGION_CODE == 202)     /* KTT */
 #define VLAN_MODE_OFF
 #define CUSTOM_KEEP_ALIVE_SETTING   30000 /* JBP type KOR KTT only. do not correct here */
 #define FULL_ROAMING_SCAN_PERIOD_60_SEC
+
+#ifdef CONFIG_MACH_UNIVERSAL5410
+/* Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1 */
+#define FIX_CPU_MIN_CLOCK
+#endif /* CONFIG_MACH_UNIVERSAL5410 */
+
 #endif /* CONFIG_WLAN_REGION_CODE == 202 */
 
 #if (CONFIG_WLAN_REGION_CODE == 203)     /* LGT */
+#ifdef CONFIG_MACH_UNIVERSAL5410
+/* Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1 */
+#define FIX_CPU_MIN_CLOCK
+#define FIX_BUS_MIN_CLOCK
+#endif /* CONFIG_MACH_UNIVERSAL5410 */
 #endif /* CONFIG_WLAN_REGION_CODE == 203 */
 #endif /* CONFIG_WLAN_REGION_CODE >= 200 && CONFIG_WLAN_REGION_CODE < 300 */
 
@@ -128,10 +147,6 @@
 #define BCMWAPI_WAI
 #endif
 #endif /* CONFIG_WLAN_REGION_CODE >= 300 && CONFIG_WLAN_REGION_CODE < 400 */
-
-#if (CONFIG_WLAN_REGION_CODE >= 400) && (CONFIG_WLAN_REGION_CODE < 500)     /* JPN */
-#define DISABLE_11AC
-#endif /* CONFIG_WLAN_REGION_CODE >= 400 && CONFIG_WLAN_REGION_CODE < 500 */
 
 #if !defined(READ_MACADDR) && !defined(WRITE_MACADDR) \
 	&& !defined(RDWR_KORICS_MACADDR) && !defined(RDWR_MACADDR)

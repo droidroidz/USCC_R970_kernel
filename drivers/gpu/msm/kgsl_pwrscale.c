@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -47,6 +47,9 @@ static struct kgsl_pwrscale_policy *kgsl_pwrscale_policies[] = {
 #endif
 #ifdef CONFIG_MSM_SLEEP_STATS_DEVICE
 	&kgsl_pwrscale_policy_idlestats,
+#endif
+#ifdef CONFIG_MSM_DCVS
+	&kgsl_pwrscale_policy_msm,
 #endif
 	NULL
 };
@@ -237,6 +240,7 @@ void kgsl_pwrscale_busy(struct kgsl_device *device)
 		device->pwrscale.policy->busy(device,
 				&device->pwrscale);
 }
+EXPORT_SYMBOL(kgsl_pwrscale_busy);
 
 void kgsl_pwrscale_idle(struct kgsl_device *device)
 {

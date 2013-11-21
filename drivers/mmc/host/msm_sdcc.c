@@ -580,24 +580,10 @@ static inline void msmsdcc_delay(struct msmsdcc_host *host)
 	udelay(host->reg_write_delay);
 
 }
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-static void msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status);
-static void msmsdcc_sps_exit_curr_xfer(struct msmsdcc_host *host);
-static void msmsdcc_start_data(struct msmsdcc_host *host,
-							   struct mmc_data *data,
-							   struct mmc_command *cmd, u32 c);
-static void msmsdcc_irq_dummy(struct msmsdcc_host *host, u32 mask);
-#endif
 
 static inline void
 msmsdcc_start_command_exec(struct msmsdcc_host *host, u32 arg, u32 c)
 {
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	volatile u32 status;
-
-	u32 mask = MCI_CMDCRCFAIL|MCI_CMDTIMEOUT|MCI_CMDRESPEND|MCI_CMDSENT;
-
-#endif
 	writel_relaxed(arg, host->base + MMCIARGUMENT);
 	writel_relaxed(c, host->base + MMCICOMMAND);
 	/*
@@ -607,17 +593,6 @@ msmsdcc_start_command_exec(struct msmsdcc_host *host, u32 arg, u32 c)
 	 * from Controller.
 	 */
 	mb();
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	/* For data write command on sdc3, poll for CMD response end */
-	if (host->mmc->index == 1) {
-		do {
-			status = readl_relaxed(host->base + MMCISTATUS);
-			if (status & mask)
-					break;
-		} while (1);
-		msmsdcc_irq_dummy(host, mask);
-	}
-#endif
 }
 
 static void
@@ -1673,6 +1648,13 @@ static void msmsdcc_sg_stop(struct msmsdcc_host *host)
 	sg_miter_stop(&host->pio.sg_miter);
 }
 
+static inline void msmsdcc_clear_pio_irq_mask(struct msmsdcc_host *host)
+{
+	writel_relaxed(readl_relaxed(host->base + MMCIMASK0) & ~MCI_IRQ_PIO,
+		host->base + MMCIMASK0);
+	mb();
+}
+
 static irqreturn_t
 msmsdcc_pio_irq(int irq, void *dev_id)
 {
@@ -1684,6 +1666,11 @@ msmsdcc_pio_irq(int irq, void *dev_id)
 	char *buffer;
 
 	spin_lock(&host->lock);
+
+	if (!atomic_read(&host->clks_on) || !host->curr.data) {
+		spin_unlock(&host->lock);
+		return IRQ_NONE;
+	}
 
 	status = readl_relaxed(base + MMCISTATUS);
 
@@ -1731,25 +1718,19 @@ msmsdcc_pio_irq(int irq, void *dev_id)
 	msmsdcc_sg_stop(host);
 	local_irq_restore(flags);
 
+	if (!host->curr.xfer_remain) {
+		msmsdcc_clear_pio_irq_mask(host);
+		goto out_unlock;
+	}
+
 	if (status & MCI_RXACTIVE && host->curr.xfer_remain < MCI_FIFOSIZE) {
 		writel_relaxed((readl_relaxed(host->base + MMCIMASK0) &
-				(~(MCI_IRQ_PIO))) | MCI_RXDATAAVLBLMASK,
+				~MCI_IRQ_PIO) | MCI_RXDATAAVLBLMASK,
 				host->base + MMCIMASK0);
-		if (!host->curr.xfer_remain) {
-			/*
-			 * back to back write to MASK0 register don't need
-			 * synchronization delay.
-			 */
-			writel_relaxed((readl_relaxed(host->base + MMCIMASK0) &
-				(~(MCI_IRQ_PIO))) | 0, host->base + MMCIMASK0);
-		}
-		mb();
-	} else if (!host->curr.xfer_remain) {
-		writel_relaxed((readl_relaxed(host->base + MMCIMASK0) &
-				(~(MCI_IRQ_PIO))) | 0, host->base + MMCIMASK0);
 		mb();
 	}
 
+out_unlock:
 	spin_unlock(&host->lock);
 
 	return IRQ_HANDLED;
@@ -1850,6 +1831,7 @@ static void msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status)
 			msmsdcc_sps_exit_curr_xfer(host);
 		}
 		else if (host->curr.data) { /* Non DMA */
+			msmsdcc_clear_pio_irq_mask(host);
 			msmsdcc_reset_and_restore(host);
 			msmsdcc_stop_data(host);
 			msmsdcc_request_end(host, cmd->mrq);
@@ -1878,91 +1860,12 @@ static void msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status)
 			msmsdcc_start_data(host, cmd->data, NULL, 0);
 	}
 }
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-static void
-msmsdcc_irq_dummy(struct msmsdcc_host *host, u32 mask)
-{
-	u32			status;
-	int			timer = 0;
-	int			count = 0;
-	ktime_t start = ktime_get();
-
-	do {
-		struct mmc_command *cmd;
-		struct mmc_data *data;
-
-		if (timer) {
-			timer = 0;
-			msmsdcc_delay(host);
-		}
-
-		status = readl_relaxed(host->base + MMCISTATUS);
-
-		if ((mask & status) == 0)
-			break;
-
-		status &= mask;
-		writel_relaxed(status, host->base + MMCICLEAR);
-		/* Allow clear to take effect*/
-		if (host->clk_rate <=
-				msmsdcc_get_min_sup_clk_rate(host))
-			msmsdcc_sync_reg_wr(host);
-
-		data = host->curr.data;
-
-		if (host->dummy_52_sent) {
-			if (status & (MCI_PROGDONE | MCI_CMDCRCFAIL |
-					  MCI_CMDTIMEOUT)) {
-				if (status & MCI_CMDTIMEOUT)
-					pr_debug("%s: dummy CMD52 timeout\n",
-						mmc_hostname(host->mmc));
-				if (status & MCI_CMDCRCFAIL)
-					pr_debug("%s: dummy CMD52 CRC failed\n",
-						mmc_hostname(host->mmc));
-				host->dummy_52_sent = 0;
-				host->dummy_52_needed = 0;
-				if (data) {
-					msmsdcc_stop_data(host);
-					msmsdcc_request_end(host, data->mrq);
-				}
-				WARN(!data, "No data cmd for dummy CMD52\n");
-				return;
-			}
-			break;
-		}
-
-		/*
-		 * Check for proper command response
-		 */
-		cmd = host->curr.cmd;
-		if ((status & (MCI_CMDSENT | MCI_CMDRESPEND | MCI_CMDCRCFAIL |
-			MCI_CMDTIMEOUT | MCI_PROGDONE |
-			MCI_AUTOCMD19TIMEOUT)) && host->curr.cmd) {
-			msmsdcc_do_cmdirq(host, status);
-		}
-
-		if (ktime_to_ms(ktime_sub(ktime_get(), start)) > 1000)// 1sec
-		{
-			printk("%s: status: (0x%.8x), loop in %d sec.\n",
-				mmc_hostname(host->mmc),status,count);
-			if(count > 5)
-				break;
-			start = ktime_get();
-			count++;
-		}
-
-	} while (status);
-}
-#endif
 
 static irqreturn_t
 msmsdcc_irq(int irq, void *dev_id)
 {
 	struct msmsdcc_host	*host = dev_id;
 	u32			status;
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	u32			mask;
-#endif
 	int			ret = 0;
 	int			timer = 0;
 
@@ -2066,20 +1969,11 @@ msmsdcc_irq(int irq, void *dev_id)
 		 */
 		cmd = host->curr.cmd;
 
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-		mask = MCI_CMDSENT | MCI_CMDCRCFAIL | MCI_CMDTIMEOUT |
-				   MCI_PROGDONE | MCI_AUTOCMD19TIMEOUT;
-		if (!(host->mmc->index == 1 && (cmd && cmd->data)))
-				mask |= MCI_CMDRESPEND;
-		if ((status & mask) && host->curr.cmd)
-				msmsdcc_do_cmdirq(host, status);
-#else
 		if ((status & (MCI_CMDSENT | MCI_CMDRESPEND | MCI_CMDCRCFAIL |
 			MCI_CMDTIMEOUT | MCI_PROGDONE |
 			MCI_AUTOCMD19TIMEOUT)) && host->curr.cmd) {
 			msmsdcc_do_cmdirq(host, status);
 		}
-#endif
 
 		if (host->curr.data) {
 			/* Check for data errors */
@@ -2093,6 +1987,7 @@ msmsdcc_irq(int irq, void *dev_id)
 					/* Stop current SPS transfer */
 					msmsdcc_sps_exit_curr_xfer(host);
 				} else {
+					msmsdcc_clear_pio_irq_mask(host);
 					msmsdcc_reset_and_restore(host);
 					if (host->curr.data)
 						msmsdcc_stop_data(host);
@@ -2265,6 +2160,7 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct msmsdcc_host *host = mmc_priv(mmc);
 	unsigned long		flags;
+	unsigned int error = 0;
 	int retries = 5;
 
 	/*
@@ -2274,6 +2170,18 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	if (host->plat->is_sdio_al_client)
 		msmsdcc_sdio_al_lpm(mmc, false);
 
+	/*
+	 * Don't start the request if SDCC is not in proper state to handle it
+	 * BAM state is checked below if applicable
+	 */
+	if (!host->pwr || !atomic_read(&host->clks_on) ||
+			host->sdcc_irq_disabled) {
+		WARN(1, "%s: %s: SDCC is in bad state. don't process new request (CMD%d)\n",
+			mmc_hostname(host->mmc), __func__, mrq->cmd->opcode);
+		error = EIO;
+		goto bad_state;
+	}
+
 	/* check if sps bam needs to be reset */
 	if (is_sps_mode(host) && host->sps.reset_bam) {
 		while (retries) {
@@ -2281,6 +2189,14 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 				break;
 			pr_err("%s: msmsdcc_bam_dml_reset_and_restore returned error. %d attempts left.\n",
 					mmc_hostname(host->mmc), --retries);
+		}
+
+		/* check if BAM reset succeeded or not */
+		if (host->sps.reset_bam) {
+			pr_err("%s: bam reset failed. Not processing the new request (CMD%d)\n",
+				mmc_hostname(host->mmc), mrq->cmd->opcode);
+			error = EAGAIN;
+			goto bad_state;
 		}
 	}
 
@@ -2299,45 +2215,17 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 			msmsdcc_execute_tuning(mmc, MMC_SEND_TUNING_BLOCK_HS200);
 	}
 
-	spin_lock_irqsave(&host->lock, flags);
-
 	if (host->eject) {
-		if (mrq->data && !(mrq->data->flags & MMC_DATA_READ)) {
-			mrq->cmd->error = 0;
-			mrq->data->bytes_xfered = mrq->data->blksz *
-						  mrq->data->blocks;
-		} else
-			mrq->cmd->error = -ENOMEDIUM;
-
-		spin_unlock_irqrestore(&host->lock, flags);
-		mmc_request_done(mmc, mrq);
-		return;
-	}
-
-	/*
-	 * Don't start the request if SDCC is not in proper state to handle it
-	 */
-	if (!host->pwr || !atomic_read(&host->clks_on) ||
-			host->sdcc_irq_disabled ||
-			host->sps.reset_bam) {
-		WARN(1, "%s: %s: SDCC is in bad state. don't process"
-		     " new request (CMD%d)\n", mmc_hostname(host->mmc),
-		     __func__, mrq->cmd->opcode);
-		msmsdcc_dump_sdcc_state(host);
-		mrq->cmd->error = -EIO;
-		if (mrq->data) {
-			mrq->data->error = -EIO;
-			mrq->data->bytes_xfered = 0;
-		}
-		spin_unlock_irqrestore(&host->lock, flags);
-		mmc_request_done(mmc, mrq);
-		return;
+		error = ENOMEDIUM;
+		goto card_ejected;
 	}
 
 	WARN(host->curr.mrq, "%s: %s: New request (CMD%d) received while"
 	     " other request (CMD%d) is in progress\n",
 	     mmc_hostname(host->mmc), __func__,
 	     mrq->cmd->opcode, host->curr.mrq->cmd->opcode);
+
+	spin_lock_irqsave(&host->lock, flags);
 
 	/*
 	 * Set timeout value to 10 secs (or more in case of buggy cards)
@@ -2385,6 +2273,17 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	msmsdcc_request_start(host, mrq);
 
 	spin_unlock_irqrestore(&host->lock, flags);
+	return;
+
+bad_state:
+	msmsdcc_dump_sdcc_state(host);
+card_ejected:
+	mrq->cmd->error = -error;
+	if (mrq->data) {
+		mrq->data->error = -error;
+		mrq->data->bytes_xfered = 0;
+	}
+	mmc_request_done(mmc, mrq);
 }
 
 static inline int msmsdcc_vreg_set_voltage(struct msm_mmc_reg_data *vreg,
@@ -5347,6 +5246,7 @@ static void msmsdcc_req_tout_timer_hdlr(unsigned long data)
 				/* Stop current SPS transfer */
 				msmsdcc_sps_exit_curr_xfer(host);
 			} else {
+				msmsdcc_clear_pio_irq_mask(host);
 				msmsdcc_reset_and_restore(host);
 				msmsdcc_stop_data(host);
 				if (mrq->data && mrq->data->stop)
@@ -5906,9 +5806,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	struct resource *dmares = NULL;
 	struct resource *dma_crci_res = NULL;
 	int ret = 0;
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	u32 reg;
-#endif
 
 	if (pdev->dev.of_node) {
 		plat = msmsdcc_populate_pdata(&pdev->dev);
@@ -6198,20 +6095,9 @@ msmsdcc_probe(struct platform_device *pdev)
 	writel_relaxed(MCI_CLEAR_STATIC_MASK, host->base + MMCICLEAR);
 	msmsdcc_sync_reg_wr(host);
 
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	if (host->mmc->index != 1)
-		reg = MCI_IRQENABLE;
-	else
-		reg = MCI_IRQENABLE_SDC3;
-	writel_relaxed(reg, host->base + MMCIMASK0);
-
-	mb();
-	host->mci_irqenable = reg;
-#else
 	writel_relaxed(MCI_IRQENABLE, host->base + MMCIMASK0);
 	mb();
 	host->mci_irqenable = MCI_IRQENABLE;
-#endif
 
 	ret = request_irq(core_irqres->start, msmsdcc_irq, IRQF_SHARED,
 			  DRIVER_NAME " (cmd)", host);

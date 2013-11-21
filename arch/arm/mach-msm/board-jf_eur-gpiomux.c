@@ -717,14 +717,14 @@ static struct msm_gpiomux_config apq8064_hdmi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &hdmi_active_1_cfg,
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
-	},*/
+	},
 	{
 		.gpio = 70,
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &hdmi_active_1_cfg,
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
-	},
+	},*/
 	{
 		.gpio = 71,
 		.settings = {
@@ -747,6 +747,16 @@ static struct msm_gpiomux_config sensorhub_configs[] __initdata = {
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &mcu_chg_cfg,
 			[GPIOMUX_ACTIVE] = &mcu_chg_cfg,
+		},
+	},
+};
+
+static struct msm_gpiomux_config nfc_firmware_configs[] __initdata = {
+	{
+		.gpio = 70,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mcu_chg_cfg,
+			[GPIOMUX_SUSPENDED] = &mcu_chg_cfg,
 		},
 	},
 };
@@ -1666,6 +1676,10 @@ void __init apq8064_init_gpiomux(void)
 
 	msm_gpiomux_install(sensorhub_configs,
 			ARRAY_SIZE(sensorhub_configs));
+	if (system_rev > BOARD_REV11)
+		msm_gpiomux_install(nfc_firmware_configs,
+			ARRAY_SIZE(nfc_firmware_configs));
+
 	msm_gpiomux_install(apq8064_slimbus_config,
 			ARRAY_SIZE(apq8064_slimbus_config));
 

@@ -70,6 +70,10 @@
 
 
 int play_speed_1_5;
+#if defined(CONFIG_FB_MSM_MIPI_RENESAS_TFT_VIDEO_FULL_HD_PT_PANEL)
+static int cabc = -1;
+extern int mipi_samsung_cabc_onoff ( int enable );
+#endif
 
 struct dsi_buf mdnie_tun_tx_buf;
 struct dsi_buf mdnie_tun_rx_buf;
@@ -101,6 +105,7 @@ const char scenario_name[MAX_mDNIe_MODE][16] = {
 	"VT_MODE",
 	"BROWSER",
 	"eBOOK",
+	"EMAIL",
 #if defined(CONFIG_TDMB)
 	"DMB_MODE",
 	"DMB_WARM_MODE",
@@ -239,10 +244,12 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 			DPRINT(" = STANDARD MODE =\n");
 			INPUT_PAYLOAD1(STANDARD_UI_1);
 			INPUT_PAYLOAD2(STANDARD_UI_2);
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 		} else if (mdnie_tun_state.background == NATURAL_MODE) {
 			DPRINT(" = NATURAL MODE =\n");
 			INPUT_PAYLOAD1(NATURAL_UI_1);
 			INPUT_PAYLOAD2(NATURAL_UI_2);
+#endif
 		} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 			DPRINT(" = DYNAMIC MODE =\n");
 			INPUT_PAYLOAD1(DYNAMIC_UI_1);
@@ -270,10 +277,12 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 				DPRINT(" = STANDARD MODE =\n");
 				INPUT_PAYLOAD1(STANDARD_VIDEO_1);
 				INPUT_PAYLOAD2(STANDARD_VIDEO_2);
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 			} else if (mdnie_tun_state.background == NATURAL_MODE) {
 				DPRINT(" = NATURAL MODE =\n");
 				INPUT_PAYLOAD1(NATURAL_VIDEO_1);
 				INPUT_PAYLOAD2(NATURAL_VIDEO_2);
+#endif
 			} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 				DPRINT(" = DYNAMIC MODE =\n");
 				INPUT_PAYLOAD1(DYNAMIC_VIDEO_1);
@@ -346,10 +355,12 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 			DPRINT(" = STANDARD MODE =\n");
 			INPUT_PAYLOAD1(STANDARD_GALLERY_1);
 			INPUT_PAYLOAD2(STANDARD_GALLERY_2);
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 		} else if (mdnie_tun_state.background == NATURAL_MODE) {
 			DPRINT(" = NATURAL MODE =\n");
 			INPUT_PAYLOAD1(NATURAL_GALLERY_1);
 			INPUT_PAYLOAD2(NATURAL_GALLERY_2);
+#endif
 		} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 			DPRINT(" = DYNAMIC MODE =\n");
 			INPUT_PAYLOAD1(DYNAMIC_GALLERY_1);
@@ -371,10 +382,12 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 			DPRINT(" = STANDARD MODE =\n");
 			INPUT_PAYLOAD1(STANDARD_VT_1);
 			INPUT_PAYLOAD2(STANDARD_VT_2);
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 		} else if (mdnie_tun_state.background == NATURAL_MODE) {
 			DPRINT(" = NATURAL MODE =\n");
 			INPUT_PAYLOAD1(NATURAL_VT_1);
 			INPUT_PAYLOAD2(NATURAL_VT_2);
+#endif
 		} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 			DPRINT(" = DYNAMIC MODE =\n");
 			INPUT_PAYLOAD1(DYNAMIC_VT_1);
@@ -403,10 +416,12 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 				DPRINT(" = STANDARD MODE =\n");
 				INPUT_PAYLOAD1(STANDARD_DMB_1);
 				INPUT_PAYLOAD2(STANDARD_DMB_2);
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 			} else if (mdnie_tun_state.background == NATURAL_MODE) {
 				DPRINT(" = NATURAL MODE =\n");
 				INPUT_PAYLOAD1(NATURAL_DMB_1);
 				INPUT_PAYLOAD2(NATURAL_DMB_2);
+#endif
 			} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 				DPRINT(" = DYNAMIC MODE =\n");
 				INPUT_PAYLOAD1(DYNAMIC_DMB_1);
@@ -456,10 +471,12 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 			DPRINT(" = STANDARD MODE =\n");
 			INPUT_PAYLOAD1(STANDARD_BROWSER_1);
 			INPUT_PAYLOAD2(STANDARD_BROWSER_2);
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 		} else if (mdnie_tun_state.background == NATURAL_MODE) {
 			DPRINT(" = NATURAL MODE =\n");
 			INPUT_PAYLOAD1(NATURAL_BROWSER_1);
 			INPUT_PAYLOAD2(NATURAL_BROWSER_2);
+#endif
 		} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 			DPRINT(" = DYNAMIC MODE =\n");
 			INPUT_PAYLOAD1(DYNAMIC_BROWSER_1);
@@ -477,14 +494,14 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 
 	case mDNIe_eBOOK_MODE:
 		DPRINT(" = eBOOK MODE =\n");
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
+		INPUT_PAYLOAD1(EBOOK_1);
+		INPUT_PAYLOAD2(EBOOK_2);
+#else
 		if (mdnie_tun_state.background == STANDARD_MODE) {
 			DPRINT(" = STANDARD MODE =\n");
 			INPUT_PAYLOAD1(STANDARD_EBOOK_1);
 			INPUT_PAYLOAD2(STANDARD_EBOOK_2);
-		} else if (mdnie_tun_state.background == NATURAL_MODE) {
-			DPRINT(" = NATURAL MODE =\n");
-			INPUT_PAYLOAD1(NATURAL_EBOOK_1);
-			INPUT_PAYLOAD2(NATURAL_EBOOK_2);
 		} else if (mdnie_tun_state.background == DYNAMIC_MODE) {
 			DPRINT(" = DYNAMIC MODE =\n");
 			INPUT_PAYLOAD1(DYNAMIC_EBOOK_1);
@@ -498,7 +515,16 @@ void mDNIe_Set_Mode(enum Lcd_mDNIe_UI mode)
 			INPUT_PAYLOAD1(AUTO_EBOOK_1);
 			INPUT_PAYLOAD2(AUTO_EBOOK_2);
 		}
+#endif
 		break;
+
+#if !defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
+	case mDNIe_EMAIL_MODE:
+		DPRINT(" = EMAIL MODE =\n");
+		INPUT_PAYLOAD1(EMAIL_1);
+		INPUT_PAYLOAD2(EMAIL_2);
+		break;
+#endif
 
 	case mDNIE_BLINE_MODE:
 		DPRINT(" = BLIND MODE =\n");
@@ -667,7 +693,9 @@ static ssize_t scenario_store(struct device *dev,
 	case SIG_MDNIE_eBOOK:
 		mdnie_tun_state.scenario = mDNIe_eBOOK_MODE;
 		break;
-
+	case SIG_MDNIE_EMAIL:
+		mdnie_tun_state.scenario = mDNIe_EMAIL_MODE;
+		break;
 #ifdef BROWSER_COLOR_TONE_SET
 	case SIG_MDNIE_BROWSER_TONE1:
 		mdnie_tun_state.scenario = mDNIe_BROWSER_TONE1;
@@ -953,6 +981,41 @@ static DEVICE_ATTR(accessibility, 0664,
 			accessibility_show,
 			accessibility_store);
 
+#if defined(CONFIG_FB_MSM_MIPI_RENESAS_TFT_VIDEO_FULL_HD_PT_PANEL)
+static ssize_t cabc_show(struct device *dev,
+			struct device_attribute *attr,
+			char *buf)
+{
+	DPRINT("called %s\n", __func__);
+	return snprintf(buf, 256, "%d\n", cabc);
+}
+
+static ssize_t cabc_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t size)
+{
+	int value;
+
+	sscanf(buf, "%d", &value);
+
+	cabc = value? 1: 0;
+	mipi_samsung_cabc_onoff ( cabc );
+
+	DPRINT ( "cabc_store, input value = %d\n", value);
+
+	return size;
+}
+
+int is_cabc_on ( void )
+{
+	return cabc;
+}
+
+static DEVICE_ATTR(cabc, 0664,
+			cabc_show,
+			cabc_store);
+#endif
+
 static struct class *mdnie_class;
 struct device *tune_mdnie_dev;
 
@@ -1011,6 +1074,13 @@ void init_mdnie_class(void)
 		(tune_mdnie_dev, &dev_attr_accessibility) < 0)
 		pr_err("Failed to create device file(%s)!=n",
 			dev_attr_accessibility.attr.name);
+
+#if defined(CONFIG_FB_MSM_MIPI_RENESAS_TFT_VIDEO_FULL_HD_PT_PANEL)
+	if (device_create_file
+		(tune_mdnie_dev, &dev_attr_cabc) < 0)
+		pr_err("Failed to create device file(%s)!=n",
+			dev_attr_cabc.attr.name);
+#endif
 
 	mdnie_tun_state.mdnie_enable = true;
 
@@ -1090,14 +1160,12 @@ void coordinate_tunning(int x, int y)
 	memcpy(&DYNAMIC_UI_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&DYNAMIC_VIDEO_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&DYNAMIC_VT_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
-	memcpy(&DYNAMIC_EBOOK_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 
 	memcpy(&STANDARD_BROWSER_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&STANDARD_GALLERY_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&STANDARD_UI_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&STANDARD_VIDEO_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&STANDARD_VT_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
-	memcpy(&STANDARD_EBOOK_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 
 	memcpy(&AUTO_BROWSER_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);
 	memcpy(&AUTO_CAMERA_2[scr_wr_addr], &coordinate_data[tune_number][0], coordinate_data_size);

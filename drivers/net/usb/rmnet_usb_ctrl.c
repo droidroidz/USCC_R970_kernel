@@ -82,6 +82,7 @@ module_param_named(dump_ctrl_msg, ctl_msg_dbg_mask, int,
 enum {
 	MSM_USB_CTL_DEBUG = 1U << 0,
 	MSM_USB_CTL_DUMP_BUFFER = 1U << 1,
+	MSM_USB_CTL_NOTI_DEBUG = 1U << 2,
 };
 
 #define DUMP_BUFFER(prestr, cnt, buf) \
@@ -94,6 +95,12 @@ do { \
 #define DBG(x...) \
 		do { \
 			if (ctl_msg_dbg_mask & MSM_USB_CTL_DEBUG) \
+				pr_info(x); \
+		} while (0)
+
+#define DBG_NOTI(x...) \
+		do { \
+			if (ctl_msg_dbg_mask & MSM_USB_CTL_NOTI_DEBUG) \
 				pr_info(x); \
 		} while (0)
 
@@ -889,6 +896,8 @@ int rmnet_usb_ctrl_probe(struct usb_interface *intf,
 	ret = rmnet_usb_ctrl_start_rx(dev);
 	if (!ret)
 		dev->is_connected = true;
+
+	ctl_msg_dbg_mask = 0;
 
 	return ret;
 }
