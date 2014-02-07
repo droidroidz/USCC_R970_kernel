@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: wl_cfgp2p.c 424074 2013-09-16 06:01:12Z $
-=======
  * $Id: wl_cfgp2p.c 425724 2013-09-25 07:04:57Z $
->>>>>>> 2.0
  *
  */
 #include <typedefs.h>
@@ -917,10 +913,7 @@ wl_cfgp2p_escan(struct wl_priv *wl, struct net_device *dev, u16 active,
 	else
 		eparams->params.nprobes = htod32((eparams->params.active_time /
 			P2PAPI_SCAN_NPROBS_TIME_MS));
-<<<<<<< HEAD
-=======
 
->>>>>>> 2.0
 
 	if (eparams->params.nprobes <= 0)
 		eparams->params.nprobes = 1;

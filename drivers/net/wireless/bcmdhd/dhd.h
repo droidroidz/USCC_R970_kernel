@@ -24,11 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: dhd.h 418908 2013-08-18 02:24:33Z $
-=======
  * $Id: dhd.h 419132 2013-08-19 21:33:05Z $
->>>>>>> 2.0
  */
 
 /****************
@@ -361,13 +357,6 @@ typedef struct dhd_pub {
 #endif
 #if defined(CUSTOMER_HW4)
 	bool dhd_bug_on;
-<<<<<<< HEAD
-#endif /* CUSTOMER_HW4 */
-} dhd_pub_t;
-#if defined(CUSTOMER_HW4)
-#define MAX_RESCHED_CNT 600
-#endif /* CUSTOMER_HW4 */
-=======
 #endif
 } dhd_pub_t;
 #if defined(CUSTOMER_HW4)
@@ -377,7 +366,6 @@ typedef struct dhd_cmn {
 	osl_t *osh;		/* OSL handle */
 	dhd_pub_t *dhd;
 } dhd_cmn_t;
->>>>>>> 2.0
 
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
 
@@ -842,24 +830,14 @@ extern uint dhd_force_tx_queueing;
 #define CUSTOM_SUSPEND_BCN_LI_DTIM		DEFAULT_SUSPEND_BCN_LI_DTIM
 #endif
 
-<<<<<<< HEAD
-#define DEFAULT_WIFI_TURNOFF_DELAY		0
-#ifndef WIFI_TURNOFF_DELAY
-#define WIFI_TURNOFF_DELAY				DEFAULT_WIFI_TURNOFF_DELAY
-=======
 #define DEFAULT_WIFI_TURNOFF_DELAY	0
 #ifndef WIFI_TURNOFF_DELAY
 #define WIFI_TURNOFF_DELAY		DEFAULT_WIFI_TURNOFF_DELAY
->>>>>>> 2.0
 #endif /* WIFI_TURNOFF_DELAY */
 
 #ifdef RXFRAME_THREAD
 #ifndef CUSTOM_RXF_PRIO_SETTING
-<<<<<<< HEAD
-#define CUSTOM_RXF_PRIO_SETTING		(DEFAULT_DHP_DPC_PRIO + 1)
-=======
 #define CUSTOM_RXF_PRIO_SETTING		MAX((CUSTOM_DPC_PRIO_SETTING - 1), 1)
->>>>>>> 2.0
 #endif
 #endif /* RXFRAME_THREAD */
 
@@ -1095,9 +1073,6 @@ int dhd_ioctl_process(dhd_pub_t *pub, int ifidx, struct dhd_ioctl *ioc);
 #if defined(SUPPORT_MULTIPLE_REVISION)
 extern int
 concate_revision(struct dhd_bus *bus, char *fwpath, int fw_path_len, char *nvpath, int nv_path_len);
-<<<<<<< HEAD
-#endif /* CUSTOMER_HW4 && SUPPORT_MULTIPLE_REVISION */
-=======
 #if defined(PLATFORM_MPS)
 extern int wifi_get_fw_nv_path(char *fw, char *nv);
 #endif
@@ -1106,7 +1081,6 @@ void dhd_set_bus_state(void *bus, uint32 state);
 
 /* Remove proper pkts(either one no-frag pkt or whole fragmented pkts) */
 extern bool dhd_prec_drop_pkts(osl_t *osh, struct pktq *pq, int prec);
->>>>>>> 2.0
 
 #if defined(CUSTOMER_HW4) && defined(USE_WFA_CERT_CONF)
 enum {

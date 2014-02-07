@@ -38,14 +38,11 @@
 #define WL_TRACE(x)
 
 #if defined(CUSTOMER_HW4)
-<<<<<<< HEAD
-=======
 
 #if defined(PLATFORM_MPS)
 int __attribute__ ((weak)) wifi_get_fw_nv_path(char *fw, char *nv) { return 0;};
 #endif
 
->>>>>>> 2.0
 #ifdef CONFIG_WIFI_CONTROL_FUNC
 int wifi_set_power(int on, unsigned long msec);
 int wifi_get_irq_number(unsigned long *irq_flags_ptr);
@@ -65,12 +62,9 @@ void *wifi_get_country_code(char *ccode) { return NULL; }
 extern int sdioh_mmc_irq(int irq);
 #endif /* (BCMLXSDMMC)  */
 
-<<<<<<< HEAD
-=======
 #if defined(PLATFORM_MPS)
 #include <mach/gpio.h>
 #endif
->>>>>>> 2.0
 
 /* Customer specific Host GPIO defintion  */
 static int dhd_oob_gpio_num = -1;
@@ -93,11 +87,7 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 {
 	int  host_oob_irq = 0;
 
-<<<<<<< HEAD
-#if defined(CUSTOMER_HW4)
-=======
 #if defined(CUSTOMER_HW4) && !defined(PLATFORM_MPS)
->>>>>>> 2.0
 	host_oob_irq = wifi_get_irq_number(irq_flags_ptr);
 
 #else
@@ -116,14 +106,11 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 	WL_ERROR(("%s: customer specific Host GPIO number is (%d)\n",
 	         __FUNCTION__, dhd_oob_gpio_num));
 
-<<<<<<< HEAD
-=======
 #if defined(PLATFORM_MPS)
 	gpio_request(dhd_oob_gpio_num, "oob irq");
 	host_oob_irq = gpio_to_irq(dhd_oob_gpio_num);
 	gpio_direction_input(dhd_oob_gpio_num);
 #endif 
->>>>>>> 2.0
 #endif 
 
 	return (host_oob_irq);

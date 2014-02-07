@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: dhd_common.c 412802 2013-07-16 16:06:51Z $
-=======
  * $Id: dhd_common.c 419132 2013-08-19 21:33:05Z $
->>>>>>> 2.0
  */
 #include <typedefs.h>
 #include <osl.h>
@@ -326,11 +322,7 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *buf, int le
 			dhd_pub->busstate = DHD_BUS_DOWN;
 		}
 
-<<<<<<< HEAD
-	dhd_os_proto_unblock(dhd_pub);
-=======
 		dhd_os_proto_unblock(dhd_pub);
->>>>>>> 2.0
 
 #if defined(CUSTOMER_HW4)
 		if (ret < 0) {

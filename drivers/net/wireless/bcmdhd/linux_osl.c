@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: linux_osl.c 412210 2013-07-12 07:12:46Z $
-=======
  * $Id: linux_osl.c 412994 2013-07-17 12:38:03Z $
->>>>>>> 2.0
  */
 
 #define LINUX_PORT
@@ -792,18 +788,11 @@ osl_pktfree_static(osl_t *osh, void *p, bool send)
 }
 #endif 
 
-<<<<<<< HEAD
-int osh_pktpadtailroom(osl_t *osh, struct sk_buff* skb, int pad)
-{
-	int err;
-	int ntail;
-=======
 int osh_pktpadtailroom(osl_t *osh, void* p, int pad)
 {
 	int err;
 	int ntail;
 	struct sk_buff* skb = (struct sk_buff*)p;
->>>>>>> 2.0
 
 	ntail = skb->data_len + pad - (skb->end - skb->tail);
 	if (likely(skb_cloned(skb) || ntail > 0)) {
@@ -1157,10 +1146,7 @@ osl_sleep(uint ms)
 	msleep(ms);
 }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 2.0
 
 
 void *

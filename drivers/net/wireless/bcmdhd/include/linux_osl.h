@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: linux_osl.h 411129 2013-07-05 01:24:07Z $
-=======
  * $Id: linux_osl.h 411126 2013-07-05 01:22:09Z $
->>>>>>> 2.0
  */
 
 #ifndef _linux_osl_h_
@@ -390,11 +386,7 @@ typedef struct ctf_mark {
 extern void osl_pktfree(osl_t *osh, void *skb, bool send);
 extern void *osl_pktget_static(osl_t *osh, uint len);
 extern void osl_pktfree_static(osl_t *osh, void *skb, bool send);
-<<<<<<< HEAD
-extern int osh_pktpadtailroom(osl_t *osh, struct sk_buff* skb, int pad);
-=======
 extern int osh_pktpadtailroom(osl_t *osh, void* skb, int pad);
->>>>>>> 2.0
 
 extern void *osl_pkt_frmnative(osl_t *osh, void *skb);
 extern void *osl_pktget(osl_t *osh, uint len);

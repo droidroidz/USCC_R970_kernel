@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: wl_cfg80211.h 423745 2013-09-13 04:48:46Z $
-=======
  * $Id: wl_cfg80211.h 429125 2013-10-11 10:43:53Z $
->>>>>>> 2.0
  */
 
 #ifndef _wl_cfg80211_h_
@@ -186,13 +182,10 @@ do {									\
 #define WL_SCB_TIMEOUT 20
 #endif
 
-<<<<<<< HEAD
-=======
 /* SCAN_SUPPRESS timer values in ms */
 #define WL_SCAN_SUPPRESS_TIMEOUT 31000 /* default Framwork DHCP timeout is 30 sec */
 #define WL_SCAN_SUPPRESS_RETRY 3000
 
->>>>>>> 2.0
 #define WL_PM_ENABLE_TIMEOUT 10000
 
 /* driver status */
@@ -635,19 +628,14 @@ struct wl_priv {
 #ifdef WL_HOST_BAND_MGMT
 	u8 curr_band;
 #endif /* WL_HOST_BAND_MGMT */
-<<<<<<< HEAD
-=======
 	bool scan_suppressed;
 	struct timer_list scan_supp_timer;
 	struct work_struct wlan_work;
 	struct mutex event_sync;	/* maily for up/down synchronization */
->>>>>>> 2.0
 	bool pm_enable_work_on;
 	struct delayed_work pm_enable_work;
 	vndr_ie_setbuf_t *ibss_vsie;	/* keep the VSIE for IBSS */
 	int ibss_vsie_len;
-<<<<<<< HEAD
-=======
 #if defined(CUSTOMER_HW4) && defined(SUPPORT_AIBSS)
 	u32 aibss_txfail_pid;
 	u32 aibss_txfail_seq;
@@ -655,7 +643,6 @@ struct wl_priv {
 #ifdef WLFBT
 	uint8 fbt_key[FBT_KEYLEN];
 #endif
->>>>>>> 2.0
 };
 
 
@@ -977,8 +964,6 @@ extern int wl_cfg80211_update_power_mode(struct net_device *dev);
 #ifdef WL_HOST_BAND_MGMT
 extern s32 wl_cfg80211_set_band(struct net_device *ndev, int band);
 #endif /* WL_HOST_BAND_MGMT */
-<<<<<<< HEAD
-=======
 extern void wl_cfg80211_add_to_eventbuffer(wl_eventmsg_buf_t *ev, u16 event, bool set);
 extern s32 wl_cfg80211_apply_eventbuffer(struct net_device *ndev,
 	struct wl_priv *wl, wl_eventmsg_buf_t *ev);
@@ -1018,20 +1003,16 @@ static inline void wl_escan_print_sync_id(s32 status, u16 result_id, u16 wl_id)
 #define wl_escan_increment_sync_id(a, b)
 #define wl_escan_init_sync_id(a)
 #endif /* DUAL_ESCAN_RESULT_BUFFER */
->>>>>>> 2.0
 extern void wl_cfg80211_ibss_vsie_set_buffer(vndr_ie_setbuf_t *ibss_vsie, int ibss_vsie_len);
 extern s32 wl_cfg80211_ibss_vsie_delete(struct net_device *dev);
 
 /* Action frame specific functions */
 extern u8 wl_get_action_category(void *frame, u32 frame_len);
 extern int wl_get_public_action(void *frame, u32 frame_len, u8 *ret_action);
-<<<<<<< HEAD
-=======
 #if defined(CUSTOMER_HW4) && defined(SUPPORT_AIBSS)
 extern void wl_cfg80211_set_txfail_pid(int pid);
 #endif /* CUSTOMER_HW4 && SUPPORT_AIBSS */
 #ifdef WLFBT
 extern void wl_get_fbt_key(uint8 *key);
 #endif
->>>>>>> 2.0
 #endif				/* _wl_cfg80211_h_ */

@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: bcmsdh_sdmmc.c 418711 2013-08-16 13:16:57Z $
-=======
  * $Id: bcmsdh_sdmmc.c 427054 2013-10-02 03:38:35Z $
->>>>>>> 2.0
  */
 #include <typedefs.h>
 
@@ -180,16 +176,6 @@ sdioh_attach(osl_t *osh, void *bar0, uint irq)
 
 		sd->client_block_size[1] = 64;
 		err_ret = sdio_set_block_size(gInstance->func[1], 64);
-<<<<<<< HEAD
-
-		/* Release host controller F1 */
-		sdio_release_host(gInstance->func[1]);
-		if (err_ret) {
-			sd_err(("bcmsdh_sdmmc: Failed to set F1 blocksize\n"));
-			MFREE(sd->osh, sd, sizeof(sdioh_info_t));
-			return NULL;
-		}
-=======
 		/* Release host controller F1 */
 		sdio_release_host(gInstance->func[1]);
 		if (err_ret) {
@@ -198,7 +184,6 @@ sdioh_attach(osl_t *osh, void *bar0, uint irq)
 			return NULL;
 		}
 
->>>>>>> 2.0
 	} else {
 		sd_err(("%s:gInstance->func[1] is null\n", __FUNCTION__));
 		MFREE(sd->osh, sd, sizeof(sdioh_info_t));
@@ -211,10 +196,6 @@ sdioh_attach(osl_t *osh, void *bar0, uint irq)
 
 		sd->client_block_size[2] = sd_f2_blocksize;
 		err_ret = sdio_set_block_size(gInstance->func[2], sd_f2_blocksize);
-<<<<<<< HEAD
-
-=======
->>>>>>> 2.0
 		/* Release host controller F2 */
 		sdio_release_host(gInstance->func[2]);
 		if (err_ret) {
@@ -223,10 +204,7 @@ sdioh_attach(osl_t *osh, void *bar0, uint irq)
 			MFREE(sd->osh, sd, sizeof(sdioh_info_t));
 			return NULL;
 		}
-<<<<<<< HEAD
-=======
 
->>>>>>> 2.0
 	} else {
 		sd_err(("%s:gInstance->func[2] is null\n", __FUNCTION__));
 		MFREE(sd->osh, sd, sizeof(sdioh_info_t));
@@ -1219,11 +1197,7 @@ sdioh_request_packet(sdioh_info_t *sd, uint fix_inc, uint write, uint func,
 		for (pnext = pkt; pnext; pnext = PKTNEXT(sd->osh, pnext)) {
 			uint8 *buf = (uint8*)PKTDATA(sd->osh, pnext) +
 				xfred_len;
-<<<<<<< HEAD
-			uint pad = 0;
-=======
 			int pad = 0;
->>>>>>> 2.0
 			pkt_len = PKTLEN(sd->osh, pnext);
 			if (0 != xfred_len) {
 				pkt_len -= xfred_len;
@@ -1270,19 +1244,11 @@ txglomfail:
 				!need_txglom &&
 #endif
 				TRUE) {
-<<<<<<< HEAD
-				pkt_len = sdioh_request_packet_align(pkt_len, write,
-					func, blk_size);
-
-				pad = pkt_len - PKTLEN(sd->osh, pnext);
-
-=======
 				int align_pkt_len = 0;
 				align_pkt_len = sdioh_request_packet_align(pkt_len, write,
 					func, blk_size);
 
 				pad = align_pkt_len - pkt_len;
->>>>>>> 2.0
 				if (pad > 0) {
 					if (func == SDIO_FUNC_2) {
 						sd_err(("%s: padding is unexpected! pkt_len %d,"

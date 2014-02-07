@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: bcmutils.h 412798 2013-07-16 15:59:30Z $
-=======
  * $Id: bcmutils.h 427979 2013-10-07 08:35:57Z $
->>>>>>> 2.0
  */
 
 #ifndef	_bcmutils_h_

@@ -102,8 +102,6 @@ config WLAN_REGION_CODE
 		- 202 : KOR KTT
 		- 203 : KOR LGT
 		- 300 : CHN OPEN
-<<<<<<< HEAD
-=======
 
 config SUPPORT_AIBSS
 	bool "Advanced IBSS mode"
@@ -111,4 +109,3 @@ config SUPPORT_AIBSS
 	default y
 	---help---
 	  This is a configuration for Oxygen Network.
->>>>>>> 2.0

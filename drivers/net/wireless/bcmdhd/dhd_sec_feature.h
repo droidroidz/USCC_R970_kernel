@@ -105,18 +105,10 @@
 #endif /* READ_MACADDR */
 
 #if (CONFIG_WLAN_REGION_CODE == 201)     /* SKT */
-<<<<<<< HEAD
-
-=======
->>>>>>> 2.0
 #ifdef CONFIG_MACH_UNIVERSAL5410
 /* Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1 */
 #define FIX_CPU_MIN_CLOCK
 #endif /* CONFIG_MACH_UNIVERSAL5410 */
-<<<<<<< HEAD
-
-=======
->>>>>>> 2.0
 #endif /* CONFIG_WLAN_REGION_CODE == 201 */
 
 #if (CONFIG_WLAN_REGION_CODE == 202)     /* KTT */
@@ -128,10 +120,6 @@
 /* Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1 */
 #define FIX_CPU_MIN_CLOCK
 #endif /* CONFIG_MACH_UNIVERSAL5410 */
-<<<<<<< HEAD
-
-=======
->>>>>>> 2.0
 #endif /* CONFIG_WLAN_REGION_CODE == 202 */
 
 #if (CONFIG_WLAN_REGION_CODE == 203)     /* LGT */
@@ -148,13 +136,8 @@
 #define BCMWAPI_WAI
 #endif /* CONFIG_WLAN_REGION_CODE >= 300 && CONFIG_WLAN_REGION_CODE < 400 */
 
-<<<<<<< HEAD
-#if !defined(READ_MACADDR) && !defined(WRITE_MACADDR) \
-	&& !defined(RDWR_KORICS_MACADDR) && !defined(RDWR_MACADDR)
-=======
 #if !defined(READ_MACADDR) && !defined(WRITE_MACADDR) && !defined(RDWR_KORICS_MACADDR) \
 	&& !defined(RDWR_MACADDR)
->>>>>>> 2.0
 #define GET_MAC_FROM_OTP
 #define SHOW_NVRAM_TYPE
 #endif /* !READ_MACADDR && !WRITE_MACADDR && !RDWR_KORICS_MACADDR && !RDWR_MACADDR */

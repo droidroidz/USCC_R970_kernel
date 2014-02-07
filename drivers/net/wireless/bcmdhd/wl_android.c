@@ -21,11 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
-<<<<<<< HEAD
- * $Id: wl_android.c 417978 2013-08-13 11:14:05Z $
-=======
  * $Id: wl_android.c 429125 2013-10-11 10:43:53Z $
->>>>>>> 2.0
  */
 
 #include <linux/module.h>
@@ -90,10 +86,6 @@
 #define CMD_P2P_SD_OFFLOAD		"P2P_SD_"
 #define CMD_P2P_SET_PS		"P2P_SET_PS"
 #define CMD_SET_AP_WPS_P2P_IE 		"SET_AP_WPS_P2P_IE"
-<<<<<<< HEAD
-#define CMD_SETROAMMODE		"SETROAMMODE"
-#define CMD_SETIBSSBEACONOUIDATA	"SETIBSSBEACONOUIDATA"
-=======
 #define CMD_SETROAMMODE 	"SETROAMMODE"
 #define CMD_SETIBSSBEACONOUIDATA	"SETIBSSBEACONOUIDATA"
 #define CMD_SETIBSSROUTETABLE		"SETIBSSROUTETABLE"
@@ -103,7 +95,6 @@
 #define CMD_GET_BEST_CHANNELS	"GET_BEST_CHANNELS"
 #endif /* WL_SUPPORT_AUTO_CHANNEL */
 
->>>>>>> 2.0
 
 #ifdef CUSTOMER_HW4
 #ifdef WL_SUPPORT_AUTO_CHANNEL
@@ -127,12 +118,9 @@
 #ifdef SUPPORT_LTECX
 #define CMD_LTECX_SET		"LTECOEX"
 #endif /* SUPPORT_LTECX */
-<<<<<<< HEAD
-=======
 #ifdef WLFBT
 #define CMD_GET_FTKEY		"GET_FTKEY"
 #endif /* WLFBT */
->>>>>>> 2.0
 #endif /* CUSTOMER_HW4 */
 
 /* CCX Private Commands */
@@ -1959,8 +1947,6 @@ wl_android_set_ltecx(struct net_device *dev, const char* string_num)
 	return 1;
 }
 #endif /* SUPPORT_LTECX */
-<<<<<<< HEAD
-=======
 
 static int
 wl_android_rmc_enable(struct net_device *net, int rmc_enable)
@@ -1983,7 +1969,6 @@ wl_android_rmc_enable(struct net_device *net, int rmc_enable)
 	}
 	return err;
 }
->>>>>>> 2.0
 #endif /* CUSTOMER_HW4 */
 
 int wl_android_set_roam_mode(struct net_device *dev, char *command, int total_len)
@@ -2085,11 +2070,7 @@ int wl_android_set_ibss_beacon_ouidata(struct net_device *dev, char *command, in
 	if (err != BCME_OK) {
 		err = -EINVAL;
 		if (vndr_ie) {
-<<<<<<< HEAD
-		kfree(vndr_ie);
-=======
 			kfree(vndr_ie);
->>>>>>> 2.0
 		}
 	}
 	else {
@@ -2104,8 +2085,6 @@ int wl_android_set_ibss_beacon_ouidata(struct net_device *dev, char *command, in
 	return err;
 }
 
-<<<<<<< HEAD
-=======
 static int
 wl_android_iolist_add(struct net_device *dev, struct list_head *head, struct io_cfg *config)
 {
@@ -2459,7 +2438,6 @@ exit:
 
 }
 
->>>>>>> 2.0
 int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 {
 #define PRIVATE_COMMAND_MAX_LEN	8192
@@ -2847,8 +2825,6 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = wl_android_set_ltecx(net, (const char*)command+skip);
 	}
 #endif /* SUPPORT_LTECX */
-<<<<<<< HEAD
-=======
 	else if (strnicmp(command, CMD_SET_RMC_ENABLE, strlen(CMD_SET_RMC_ENABLE)) == 0) {
 		int rmc_enable = *(command + strlen(CMD_SET_RMC_ENABLE) + 1) - '0';
 		bytes_written = wl_android_rmc_enable(net, rmc_enable);
@@ -2886,7 +2862,6 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = FBT_KEYLEN;
 	}
 #endif /* WLFBT */
->>>>>>> 2.0
 #endif /* CUSTOMER_HW4 */
 	else if (strnicmp(command, CMD_HAPD_MAC_FILTER, strlen(CMD_HAPD_MAC_FILTER)) == 0) {
 		int skip = strlen(CMD_HAPD_MAC_FILTER) + 1;
@@ -2894,17 +2869,12 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 	}
 	else if (strnicmp(command, CMD_SETROAMMODE, strlen(CMD_SETROAMMODE)) == 0)
 		bytes_written = wl_android_set_roam_mode(net, command, priv_cmd.total_len);
-<<<<<<< HEAD
-=======
 	else if (strnicmp(command, CMD_MIRACAST, strlen(CMD_MIRACAST)) == 0)
 		bytes_written = wl_android_set_miracast(net, command, priv_cmd.total_len);
->>>>>>> 2.0
 	else if (strnicmp(command, CMD_SETIBSSBEACONOUIDATA,
 		strlen(CMD_SETIBSSBEACONOUIDATA)) == 0)
 		bytes_written = wl_android_set_ibss_beacon_ouidata(net, command,
 			priv_cmd.total_len);
-<<<<<<< HEAD
-=======
 	else if (strnicmp(command, CMD_SETIBSSROUTETABLE,
 		strlen(CMD_SETIBSSROUTETABLE)) == 0)
 		bytes_written = wl_android_set_ibss_routetable(net, command,
@@ -2914,7 +2884,6 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		strlen(CMD_SETIBSSTXFAILEVENT)) == 0)
 		bytes_written = wl_android_set_ibss_txfail_event(net, command, priv_cmd.total_len);
 #endif /* CUSTOMER_HW4 && SUPPORT_AIBSS */
->>>>>>> 2.0
 	else {
 		DHD_ERROR(("Unknown PRIVATE command %s - ignored\n", command));
 		snprintf(command, 3, "OK");

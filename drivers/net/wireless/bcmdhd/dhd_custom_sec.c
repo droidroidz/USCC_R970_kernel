@@ -23,23 +23,6 @@
  *
  * $Id: dhd_custom_sec.c 334946 2012-05-24 20:38:00Z $
  */
- 
-/* Function list
-	1. Module Type
-		a. For CID - Use 'USE_CID_CHECK' Feature
-			dhd_write_cid_file(), dhd_dump_cis(), dhd_check_module_cid()
-		b. For MAC - Use 'GET_MAC_FROM_OTP' Feature
-			dhd_write_mac_file(), dhd_check_module_mac()
-	2. COB Type
-		a. For MAC - Use 'READ_MACADDR' Feature
-			dhd_read_macaddr()
-	3. Etc
-		a. Power Save Mode - Use 'CONFIG_CONTROL_PM' Feature
-			sec_control_pm()
-		b. Frame Burst Control (11ac) - Use 'USE_WL_FRAMEBURST' Feature
-			sec_control_frameburst()
- */
- 
 #ifdef CUSTOMER_HW4
 #include <typedefs.h>
 #include <linuxver.h>
