@@ -1,7 +1,7 @@
 /*
  * BCMSDH Function Driver for the native SDIO/MMC driver in the Linux Kernel
  *
- * Copyright (C) 1999-2012, Broadcom Corporation
+ * Copyright (C) 1999-2013, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +21,11 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
+<<<<<<< HEAD
  * $Id: bcmsdh_sdmmc.h 396591 2013-04-13 16:14:29Z $
+=======
+ * $Id: bcmsdh_sdmmc.h 396592 2013-04-13 16:14:38Z $
+>>>>>>> 2.0
  */
 
 #ifndef __BCMSDH_SDMMC_H__
@@ -67,15 +71,13 @@ extern void sdioh_sdmmc_osfree(sdioh_info_t *sd);
 #define CLIENT_INTR			0x100	/* Get rid of this! */
 
 #ifdef BCMSDIOH_TXGLOM
-/* Setting the MAX limit to 10 */
-#define SDIOH_MAXGLOM_SIZE	16
 
 typedef struct glom_buf {
 	void *glom_pkt_head;
 	void *glom_pkt_tail;
 	uint32 count;				/* Total number of pkts queued */
 } glom_buf_t;
-#endif
+#endif /* BCMSDIOH_TXGLOM */
 
 struct sdioh_info {
 	osl_t		*osh;			/* osh handler */
