@@ -244,6 +244,7 @@ config ARCH_APQ8064
 	select USE_USER_ACCESSIBLE_TIMERS
 	select ARM_USE_USER_ACCESSIBLE_TIMERS
 	select MSM_USE_USER_ACCESSIBLE_TIMERS
+	select HAS_MACH_MEMUTILS
 
 config ARCH_MSM8974
 	bool "MSM8974"
@@ -1779,6 +1780,13 @@ config CPU_VOLTAGE_TABLE
 	default n
 	help
 	  Krait User Votlage Control
+
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM memcpy enhancements"
+	help
+	Faster memcpy performance for Krait
+endif
 
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
