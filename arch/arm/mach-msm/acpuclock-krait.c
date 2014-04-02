@@ -991,7 +991,7 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 #endif	/* CONFIG_CPU_VOTALGE_TABLE */
 
 #ifdef CONFIG_CPU_FREQ_MSM
-static struct cpufreq_frequency_table freq_table[NR_CPUS][45];
+static struct cpufreq_frequency_table freq_table[NR_CPUS][35];
 extern int console_batt_stat;
 static void __init cpufreq_table_init(void)
 {
@@ -1104,8 +1104,8 @@ static const int krait_needs_vmin(void)
 static void krait_apply_vmin(struct acpu_level *tbl)
 {
 	for (; tbl->speed.khz != 0; tbl++) {
-		if (tbl->vdd_core < 700000)
-			tbl->vdd_core = 700000;
+		if (tbl->vdd_core < 1150000)
+			tbl->vdd_core = 1150000;
 		tbl->avsdscr_setting = 0;
 	}
 }
