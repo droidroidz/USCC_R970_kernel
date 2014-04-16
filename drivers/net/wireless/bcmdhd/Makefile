@@ -21,7 +21,7 @@ DHDCFLAGS += -DWL_CFG80211
 
 # Debug
 DHDCFLAGS += -DSIMPLE_MAC_PRINT
-DHDCFLAGS += -DDEBUGFS_CFG80211
+# DHDCFLAGS += -DDEBUGFS_CFG80211
 # Print out kernel panic point of file and line info when assertion happened
 DHDCFLAGS += -DBCMASSERT_LOG
 
@@ -65,7 +65,7 @@ DHDCFLAGS += -DSUPPORT_AMPDU_MPDU_CMD
 #DHDCFLAGS += -DBLOCK_IPV6_PACKET
 
 # For special PNO Event keep wake lock for 10sec
-DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=10
+DHDCFLAGS += -DCUSTOM_PNO_EVENT_LOCK_xTIME=5
 
 # For Passing all multicast packets to host when not in suspend mode.
 DHDCFLAGS += -DPASS_ALL_MCAST_PKTS
