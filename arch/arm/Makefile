@@ -63,7 +63,7 @@ CUSTOM_FLAG	= -fgcse-sm -fsched-spec-load \
 		  -fno-default-inline -fno-inline-functions-called-once -ffast-math
 CUSTOM_FLAG	+= -O3
 
-arch-$(CONFIG_CPU_32v7)		:=-D__LINUX_ARM_ARCH__=7 $(call cc-option, $(CUSTOM_FLAG)
+arch-$(CONFIG_CPU_32v7)		:=-D__LINUX_ARM_ARCH__=7 $(call cc-option, $(CUSTOM_FLAG))
 # Only override the compiler option if ARMv6. The ARMv6K extensions are
 # always available in ARMv7
 ifeq ($(CONFIG_CPU_32v6),y)
