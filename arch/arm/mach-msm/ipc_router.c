@@ -1402,21 +1402,21 @@ static void do_read_data(struct work_struct *work)
 			release_pkt(pkt);
 			continue;
 		}
-#if defined(CONFIG_MSM_SMD_LOGGING)
-#if defined(DEBUG)
-		if (msm_ipc_router_debug_mask & SMEM_LOG) {
-			smem_log_event((SMEM_LOG_PROC_ID_APPS |
-				SMEM_LOG_RPC_ROUTER_EVENT_BASE |
-				IPC_ROUTER_LOG_EVENT_RX),
-				(hdr->src_node_id << 24) |
-				(hdr->src_port_id & 0xffffff),
-				(hdr->dst_node_id << 24) |
-				(hdr->dst_port_id & 0xffffff),
-				(hdr->type << 24) | (hdr->confirm_rx << 16) |
-				(hdr->size & 0xffff));
-		}
-#endif
-#endif
+//#if defined(CONFIG_MSM_SMD_LOGGING)
+//#if defined(DEBUG)
+//		if (msm_ipc_router_debug_mask & SMEM_LOG) {
+//			smem_log_event((SMEM_LOG_PROC_ID_APPS |
+//				SMEM_LOG_RPC_ROUTER_EVENT_BASE |
+//				IPC_ROUTER_LOG_EVENT_RX),
+//				(hdr->src_node_id << 24) |
+//				(hdr->src_port_id & 0xffffff),
+//				(hdr->dst_node_id << 24) |
+//				(hdr->dst_port_id & 0xffffff),
+//				(hdr->type << 24) | (hdr->confirm_rx << 16) |
+//				(hdr->size & 0xffff));
+//		}
+//#endif
+//#endif
 
 		resume_tx = hdr->confirm_rx;
 		resume_tx_node_id = hdr->dst_node_id;
@@ -1736,21 +1736,21 @@ static int msm_ipc_router_write_pkt(struct msm_ipc_port *src,
 		hdr->confirm_rx, hdr->size,
 		hdr->dst_node_id, hdr->dst_port_id);
 
-#if defined(CONFIG_MSM_SMD_LOGGING)
-#if defined(DEBUG)
-	if (msm_ipc_router_debug_mask & SMEM_LOG) {
-		smem_log_event((SMEM_LOG_PROC_ID_APPS |
-			SMEM_LOG_RPC_ROUTER_EVENT_BASE |
-			IPC_ROUTER_LOG_EVENT_TX),
-			(hdr->src_node_id << 24) |
-			(hdr->src_port_id & 0xffffff),
-			(hdr->dst_node_id << 24) |
-			(hdr->dst_port_id & 0xffffff),
-			(hdr->type << 24) | (hdr->confirm_rx << 16) |
-			(hdr->size & 0xffff));
-	}
-#endif
-#endif
+//#if defined(CONFIG_MSM_SMD_LOGGING)
+//#if defined(DEBUG)
+//	if (msm_ipc_router_debug_mask & SMEM_LOG) {
+//		smem_log_event((SMEM_LOG_PROC_ID_APPS |
+//			SMEM_LOG_RPC_ROUTER_EVENT_BASE |
+//			IPC_ROUTER_LOG_EVENT_TX),
+//			(hdr->src_node_id << 24) |
+//			(hdr->src_port_id & 0xffffff),
+//			(hdr->dst_node_id << 24) |
+//			(hdr->dst_port_id & 0xffffff),
+//			(hdr->type << 24) | (hdr->confirm_rx << 16) |
+//			(hdr->size & 0xffff));
+//	}
+//#endif
+//#endif
 
 	return pkt->length;
 }
